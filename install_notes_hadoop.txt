@@ -1,0 +1,68 @@
+# on first vm:
+    su -
+    cd ~hadoop
+    ls /etc/yum.repos.d/
+  # Use HortonWorks HDP Repo
+    sudo curl -O public-repo-1.hortonworks.com/HDP/centos7/2.x/updates/2.3.0.0/hdp.repo
+    sudo mv hdp.repo /etc/yum.repos.d/.
+    ll /etc/yum.repos.d/hdp.repo 
+  #TODO copy hdp.repo to remaining vms?
+    sudo yum -y install epel-release
+    sudo yum -y repolist enable
+  # search for HDP stack repos
+    yum search hadoop
+    yum search hive
+  #TODO install sw builders
+  # yum install ant make
+    yum -y install maven
+  #TODO install compilers
+  # yum install gcc gcc-C++
+  #TODO install lib for communication between nodes
+  # yum install openssl
+  #TODO install lib for development
+  # yum install openssl
+  #TODO install lib for sql and ldap
+  # yum install libxml2-devel libxsit-devel
+  # yum install libsqlite ldap
+  #TODO check hadoop/java compatability charts \ 
+    # @ https://wiki.apache.org/hadoop/HadoopJavaVersions
+  # Check current installed java version
+    java -version
+  # Install desired JDK version
+    sudo yum -y install java-1.7.0-openjdk-devel.x86_64 
+  # verify alternatives settings link to correct version
+    sudo alternatives --display java
+  # make sure the bin directory contains the binaries
+    ls /usr/lib/jvm/java-1.7.0-openjdk-1.7.0.121-0.b13.el7_3.x86_64/
+  # verify /usr/lib/java/ is an empty directory
+    ls /usr/lib/java
+  # verify /etc/alternatives/java_sdk points to correct version
+  # e.g.,   /usr/lib/jvm/java-1.7.0-openjdk-1.7.0.131-2.6.9.0.el7_3.x86_64
+    ll /etc/alternatives/java_sdk
+  # replace /usr/lib/java with a soft link
+    sudo rmdir /usr/lib/java
+    sudo ln -s /etc/alternatives/java_sdk/ /usr/lib/java
+  # set home path for user
+    sudo vi /etc/bashrc ;    # add these lines to end of file: \
+        # set java home dir 
+        export JAVA_HOME="/usr/lib/java"
+        export PATH="$PATH:$JAVA_HOME/bin"
+    source /etc/bashrc
+  #TODO Configure SSH
+  # change hostname
+    hostnamectl set-hostname hdcentos
+    hostname
+  # change hosts file
+    vi /etc/hosts ;     # add line as \
+        127.0.0.1    hdcentos
+  # reboot
+    reboot
+    hostname
+
+  #TODO create users
+    adduser hduser
+    passwd hduser
+
+
+
+    cd ~ ; # hadoop user
