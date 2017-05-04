@@ -59,10 +59,348 @@
     reboot
     hostname
 
-  #TODO create users
+  # create users
     adduser hduser
     passwd hduser
 
+  # Install hadoop
+    yum install hadoop hadoop-client
+    
 
+
+#################
+# On each node
+#################
+  # create ssh key
+    ssh-keygen
+  # make authorized key list
+    cp .ssh/id_rsa.pub .ssh/authorized_keys
+    ssh localhost # answer "yes" and then exit
+    ssh localhost # make sure it connects without asking for a passwd
+    ssh hdcentos  # answer "yes" and then exit
+    ssh hdcentos  # make sure it connects without asking for a passwd
 
     cd ~ ; # hadoop user
+# add user to sudoers (optional)
+    visudo
+        # add line:
+        hduser  ALL=(ALL)    ALL
+    su hduser
+    sudo ls
+    exit
+
+# for the hduser, create ssh key
+    su hduser
+    ssh-keygen -t rsa -P ''
+
+    #add to list of known hosts
+    ssh localhost   # answer yes
+
+    #set up passwd-less login for hduser to hostname hdcentos
+    ls .ssh         # verify file authorized_keys doesn't already exist
+    cp .ssh/id_rsa.pub .ssh/authorized_keys
+    ssh localhost   # verify login without passwd
+    ssh hdcentos    # verify login without passwd
+
+    # OR FROM THE VBOX HOST TO SEVERAL NODES...
+    # set up key-based login
+    #   ./nodes_ssh_setup.exp <username>
+
+# install hadoop
+    yum install hadoop hadoop-client
+
+# "install the compression libraries, snappy and LZL" <-- no clue what these are or when they will be needed
+    yum install snappy snappy-devel
+
+# yum installs code into /usr/bin and then creates other directories
+
+# File system layout best practice:
+#   Code base:      /usr/lib/<component>
+#   Config files:   /etc/<component>/conf
+#   Data files:     /var/db/<component>
+#   Log files:      /var/log/<component>
+#   Pid files:      /var/run/<component>
+#   Working dir:    /home/hduser/<component>
+
+# Operational dir location (alternative to /usr/local/opt or /opt):
+#   Soft links:     /usr/hdeco
+
+# Create op dir for soft links
+    mkdir /usr/hdeco
+    which hadoop            # /usr/bin/hadoop
+    which hadoop | ls -l    # hadoop -> /usr/hdp/current/hadoop-client
+    ln -s /usr/hdp/current/hadoop-client /usr/hdeco/hadoop
+    ls -l /usr/hdeco/hadoop # /usr/hdeco/hadoop -> /usr/hdp/current/hadoop-client
+
+# chown the conf dir and its files (from root:root) to allow r/w by hduser
+    ls -l /etc/hadoop       # conf  # a directory (not a link)
+    ls -l /etc/hadoop/conf  # contains *-env.sh and *-site.xml files
+    chown -R hduser:hadoop /etc/hadoop/conf
+    ls -ld /etc/hadoop/conf |grep -e "hduser *hadoop"   # dir is owned by hduser hadoop
+    ls -l /etc/hadoop/conf |grep -e "hduser *hadoop"    # all files are owned by hduser hadoop
+
+# make working dir in home dir to make it easier to admin and operate hadoop
+    cd /home/hduser
+    mkdir hadoop
+    cd hadoop
+
+
+# ----------------------
+# On the VirtualBox host:
+# ----------------------
+
+# add neighbors to /etc/hosts: 10.0.3.12 hmaster, 10.0.3.13 hslave1, 10.0.3.14 hslave2, ...
+    for x in 2 3 4 5 6; do ./put_files_on_remote.sh root 192.168.98.10$x ./revise_etc_hosts_file.sh ; done
+    ./nodes_cmd.exp root "./revise_etc_hosts_file.sh"
+
+    # OR...
+    ./nodes_send_and_run_script.exp ./revise_etc_hosts_file.sh
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /etc/hosts |grep 10.0.3"
+
+# update packages
+    ./nodes_cmd.exp root "yum update"
+    # type "proceed" to return from interact
+
+# install wget
+    pkg="wget"
+    ./nodes_cmd.exp root "yum install $pkg";done
+    # type "proceed" to return from interact after install on ea node
+
+    # test
+    ./nodes_cmd.exp <username> "which wget"
+
+# get hadoop
+    ssh root@hmaster
+    cd /opt
+    wget http://mirror.reverse.net/pub/apache/hadoop/common/current/hadoop-3.0.0-alpha2.tar.gz
+    tar -xzf hadoop-3.0.0-alpha2.tar.gz
+    rm hadoop-3.0.0-alpha2.tar.gz
+    mv hadoop-3.0.0-alpha2 /opt/hadoop
+
+# propagate to slave nodes
+    cd /opt
+    for x in 1 2 3 4; do scp -r hadoop hslave${x}:/opt ; done
+
+    # test PASSED
+    ./nodes_cmd.exp hadoop "which hdfs | grep hadoop"
+
+# chown and chgrp of /opt/hadoop
+    ./nodes_cmd.exp root "chown hadoop /opt/hadoop/ -R"
+    ./nodes_cmd.exp root "chgrp hadoop /opt/hadoop/ -R"
+
+    # test PASSED
+    ./nodes_cmd.exp root "ls -dl /opt/hadoop"
+
+### IF THIS DOESN'T WORK, TRY MOVING xxx-site.xml files to /opt/hadoop/conf/.
+
+# edit the file /opt/hadoop/etc/hadoop/core-site.xml
+    ./nodes_send_and_run_script.exp ./revise_hadoop_core-site_xml.sh
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/core-site.xml | grep -A2 hmaster"
+
+# edit the file /opt/hadoop/etc/hadoop/hdfs-site.xml
+    ./nodes_send_and_run_script.exp ./revise_hadoop_hdfs-site_xml.sh
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/hdfs-site.xml|grep -A2 datanode"
+
+# edit the file /opt/hadoop/etc/hadoop/yarn-site.xml
+    ./nodes_send_and_run_script.exp ./revise_hadoop_yarn-site_xml.sh
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/yarn-site.xml|grep -A2 manager"
+
+# create HDFS DataNode data dir
+    ./nodes_cmd.exp root "mkdir /home/hadoop/datanode"
+    ./nodes_cmd.exp root "chown hadoop /home/hadoop/datanode -R"
+    ./nodes_cmd.exp root "chgrp hadoop /home/hadoop/datanode -R"
+
+    # test PASSED
+    ./nodes_cmd.exp root "ls -dl /home/hadoop/datanode | grep hadoop"
+
+# ON MASTER ONLY create HDFS NameNode data dir
+    ssh root@hmaster "mkdir /home/hadoop/namenode; chown hadoop /home/hadoop/namenode; chgrp hadoop /home/hadoop/namenode"
+
+    # test PASSED
+    ./nodes_cmd.exp root "ls -dl /home/hadoop/namenode | grep hadoop"
+
+# ON MASTER ONLY edit the file /opt/hadoop/etc/hadoop/hdfs-site.xml
+    addition="<configuration>\n<property>\n<name>dfs.namenode.data.dir<\/name>\n<value>\/home\/hadoop\/namenode<\/value>\n<\/property>"
+    sedscript="s/<configuration>/$addition/"
+    # this doesn't work:
+    # ssh hmaster "sed -e $sedscript -i /opt/hadoop/etc/hadoop/hdfs-site.xml"
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/hdfs-site.xml|grep -A2 namenode"
+
+# ON MASTER ONLY edit the file /opt/hadoop/etc/hadoop/mapred-site.xml
+    addition="<configuration>\n<property>\n<name>mapreduce.framework.name<\/name>\n<value>yarn<\/value>\n<\/property>"
+    sedscript="s/<configuration>/$addition/"
+    # this doesn't work:
+    # ssh hmaster "cp /opt/hadoop/etc/hadoop/mapred-site.xml.template /opt/hadoop/etc/hadoop/mapred-site.xml; sed -e $sedscript -i /opt/hadoop/etc/hadoop/mapred-site.xml"
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/mapred-site.xml|grep -A2 mapreduce"
+
+# ON MASTER ONLY create the file /opt/hadoop/etc/hadoop/slaves
+#TODO Make note that start-dfs.sh looks at "workers" instead of "slaves" file
+    hmaster
+    hslave1
+    hslave2
+    hslave3
+    hslave4
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/slaves"
+
+# ON MASTER ONLY create the file $HADOOP_YARN_HOME/conf/masters
+    mkdir /opt/hadoop/conf
+    touch /opt/hadoop/conf/masters
+    echo hmaster >> /opt/hadoop/conf/masters
+
+    chown hadoop /opt/hadoop/conf -R
+    chgrp hadoop /opt/hadoop/conf -R
+
+    # test PASSED
+    ls -l /opt/hadoop/conf |grep hadoop
+    cat /opt/hadoop/conf/masters
+
+# add to the file /opt/hadoop/etc/hadoop/mapred-site.xml
+    addition="<configuration>\n<property>\n<name>mapred.job.tracker<\/name>\n<value>hmaster:9000<\/value>\n<\/property>"
+    sedscript="s/<configuration>/$addition/"
+    # this doesn't work:
+    # ssh hslave1 "cp /opt/hadoop/etc/hadoop/mapred-site.xml.template /opt/hadoop/etc/hadoop/mapred-site.xml; sed -e $sedscript -i /opt/hadoop/etc/hadoop/mapred-site.xml"
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/mapred-site.xml"
+
+# add to file yarn-site.xml to fix error:
+#   "Could not find or load main class org.apache.hadoop.mapreduce.v2.app.MRAppMaster"
+    <property>
+        <name>yarn.application.classpath</name>
+        <value>$HADOOP_MAPRED_HOME/*:$HADOOP_MAPRED_HOME/lib/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*</value>
+    </property>
+
+# add to file mapred-site.xml to fix error:
+#   "Could not find or load main class org.apache.hadoop.mapreduce.v2.app.MRAppMaster"
+    <property>
+        <name>mapreduce.application.classpath</name>
+        <value>$HADOOP_MAPRED_HOME/*:$HADOOP_MAPRED_HOME/lib/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*</value>
+    </property>
+
+# open ports with either iptables or firewall
+#   ssh root@hmaster
+#     iptables -I INPUT -p tcp --dport 9000 -j ACCEPT
+#     iptables -I INPUT -p tcp --dport 9001 -j ACCEPT
+#     for x in 1 2 3 4; do ssh hslave{x} "iptables -I INPUT -p tcp --dport 50010 -j ACCEPT" ; done
+#
+#   #ssh ./nodes_cmd.exp root "systemctl iptables save ; service iptables reload"
+#   ./nodes_cmd.exp root "systemctl stop firewalld"
+#
+# OR...
+    ssh root@hmaster 
+      firewall-cmd --permanent --add-port=9000/tcp
+      firewall-cmd --permanent --add-port=9001/tcp
+      firewall-cmd --reload
+      for x in 1 2 3 4; do ssh hslave${x} "firewall-cmd --permanent --add-port=50010/tcp ; firewall-cmd --reload" ; done
+
+# disable IPv6 -- add to the file /etc/sysctl.conf
+    net.ipv6.conf.all.disable_ipv6 = 1
+    net.ipv6.conf.default.disable_ipv6 = 1
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /etc/sysctl.conf |grep -i ipv6"
+
+# edit the file etc/hadoop/hadoop-env.sh
+    javahm=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.121-0.b13.el7_3.x86_64
+    ./nodes_cmd.exp root "echo -e \"export JAVA_HOME=$javahm\" >> /opt/hadoop/etc/hadoop/hadoop-env.sh"
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/hadoop-env.sh |grep JAVA_HOME"
+
+# edit the file /home/hadoop/.bashrc
+    ./nodes_send_and_run_script.exp ./revise_hadoop_bashrc_file.sh
+
+    # test PASSED
+    ./nodes_cmd.exp root "cat /home/hadoop/.bashrc|grep -A2 HADOOP"
+    ./nodes_cmd.exp hadoop "echo \$HADOOP_PREFIX ; echo \$HADOOP_HOME ; echo \$HADOOP_CONF_DIR"
+
+# add to the file /etc/bashrc
+    export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.121-0.b13.el7_3.x86_64
+    export JRE_HOME=$JAVA_HOME/jre
+    export PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin
+    systemctl stop firewalld
+
+    # test PASSED
+    ./nodes_cmd.exp root "echo \$JAVA_HOME"
+
+# ON MASTER ONLY format namenode
+    ssh hadoop@hmaster 
+    hdfs namenode -format
+    exit
+    
+# start hadoop cluster
+    ssh hadoop@hmaster "start-dfs.sh"
+
+    # test FAILED
+    ./nodes_cmd.exp root "jps"
+
+############# troubleshooting ############## 
+# check cluster
+    hdfs dfsadmin -report
+
+# stop the cluster
+    stop-all.sh
+    mapred --daemon stop historyserver
+    for x in 1 2 3 4; do ssh hslave${x} "stop-all.sh" ; done
+
+# empty the datanode and namenode dirs on hmaster and slaves
+    rm -vrf /home/hadoop/datanode/* ; rm -vrf /home/hadoop/namenode/* ; rm -vrf /tmp/hadoop-*hadoop/*
+    for x in 1 2 3 4; do ssh hslave${x} "rm -vrf /home/hadoop/datanode/* ; rm -vrf /tmp/hadoop-*hadoop/*" ; done
+
+# format namenode on hmaster
+    hdfs namenode -format
+
+# view logs
+    # ./nodes_cmd.exp root "tail /opt/hadoop/logs/*"
+
+############################################ 
+# restart hadoop cluster
+    start-dfs.sh
+    for x in 1 2 3 4; do ssh hslave${x} "hdfs --daemon start datanode" ; done
+
+# start yarn
+    start-yarn.sh
+
+# start job history
+    #$HADOOP_PREFIX/sbin/mr-jobhistory-daemon.sh --config $HADOOP_CONF_DIR start historyserver
+    #mr-jobhistory-daemon.sh start historyserver
+    mapred --daemon start historyserver
+
+# test
+    jps
+
+# check cluster
+    hdfs dfsadmin -report
+
+############################################ 
+#create dir
+    hadoop fs -mkdir /input
+
+#store data to hadoop fs
+    hadoop fs -copyFromLocal ./test.txt /input
+
+#ls dir
+    hadoop fs -ls /input
+
+#view data
+    hadoop fs -cat /input/test.txt
+
+############################################ 
+# install Apache on hmaster
+    yum install httpd
+
+
