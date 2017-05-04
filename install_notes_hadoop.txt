@@ -66,51 +66,29 @@
   # Install hadoop
     yum install hadoop hadoop-client
     
+  # add user to sudoers (optional)
+    visudo # add line: hduser  ALL=(ALL)    ALL
+    su hduser ; sudo ls ; exit
 
+  # for the hduser, create ssh key
+    su hduser
+    ssh-keygen -t rsa -P ''
 
-#################
-# On each node
-#################
-  # create ssh key
-    ssh-keygen
-  # make authorized key list
-    cp .ssh/id_rsa.pub .ssh/authorized_keys
+  # set up passwd-less login for hduser to hostname hdcentos
+    cd ~
+    ls .ssh ;       # verify file authorized_keys doesn't already exist
+    cp .ssh/id_rsa.pub .ssh/authorized_keys ; # make authorized key list
+  # add to list of known hosts
     ssh localhost # answer "yes" and then exit
     ssh localhost # make sure it connects without asking for a passwd
     ssh hdcentos  # answer "yes" and then exit
     ssh hdcentos  # make sure it connects without asking for a passwd
 
-    cd ~ ; # hadoop user
-# add user to sudoers (optional)
-    visudo
-        # add line:
-        hduser  ALL=(ALL)    ALL
-    su hduser
-    sudo ls
-    exit
-
-# for the hduser, create ssh key
-    su hduser
-    ssh-keygen -t rsa -P ''
-
-    #add to list of known hosts
-    ssh localhost   # answer yes
-
-    #set up passwd-less login for hduser to hostname hdcentos
-    ls .ssh         # verify file authorized_keys doesn't already exist
-    cp .ssh/id_rsa.pub .ssh/authorized_keys
-    ssh localhost   # verify login without passwd
-    ssh hdcentos    # verify login without passwd
-
-    # OR FROM THE VBOX HOST TO SEVERAL NODES...
-    # set up key-based login
-    #   ./nodes_ssh_setup.exp <username>
-
 # install hadoop
-    yum install hadoop hadoop-client
+    yum -y install hadoop hadoop-client
 
 # "install the compression libraries, snappy and LZL" <-- no clue what these are or when they will be needed
-    yum install snappy snappy-devel
+    yum -y install snappy snappy-devel
 
 # yum installs code into /usr/bin and then creates other directories
 
@@ -140,9 +118,15 @@
     ls -l /etc/hadoop/conf |grep -e "hduser *hadoop"    # all files are owned by hduser hadoop
 
 # make working dir in home dir to make it easier to admin and operate hadoop
+    su hduser
     cd /home/hduser
     mkdir hadoop
     cd hadoop
+
+#################
+#################
+# On each node
+#################
 
 
 # ----------------------
