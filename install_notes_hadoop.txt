@@ -1,4 +1,6 @@
-# on first vm:
+  #################
+  # On first vm:
+  #################
     su -
     cd ~hadoop
     ls /etc/yum.repos.d/
@@ -43,10 +45,15 @@
     sudo rmdir /usr/lib/java
     sudo ln -s /etc/alternatives/java_sdk/ /usr/lib/java
   # set home path for user
-    sudo vi /etc/bashrc ;    # add these lines to end of file: \
-        # set java home dir 
-        export JAVA_HOME="/usr/lib/java"
-        export PATH="$PATH:$JAVA_HOME/bin"
+    sudo vi /etc/bashrc ; # add these lines to end of file:
+                            # set java home dir 
+                            export JAVA_HOME="/usr/lib/java"
+                            export PATH="$PATH:$JAVA_HOME/bin"
+
+                            # source the Hadoop runtime
+                            if [ -f ./.hadooprc ]; then
+                                . ./.hadooprc
+                            fi
     source /etc/bashrc
 
   # change hostname
@@ -63,9 +70,6 @@
     adduser hduser
     passwd hduser
 
-  # Install hadoop
-    yum install hadoop hadoop-client
-    
   # add user to sudoers (optional)
     visudo # add line: hduser  ALL=(ALL)    ALL
     su hduser ; sudo ls ; exit
@@ -84,48 +88,111 @@
     ssh hdcentos  # answer "yes" and then exit
     ssh hdcentos  # make sure it connects without asking for a passwd
 
-# install hadoop
-    yum -y install hadoop hadoop-client
+  ####################################
+  # File system layout best practice:
+  #   Code base:      /usr/lib/<component>
+  #   Config files:   /etc/<component>/conf
+  #   Data files:     /var/db/<component>
+  #   Log files:      /var/log/<component>
+  #   Pid files:      /var/run/<component>
+  #   Working dir:    /home/hduser/<component>
+  ####################################
 
-# "install the compression libraries, snappy and LZL" <-- no clue what these are or when they will be needed
+  ####################################
+  # yum installs code into /usr/bin and then creates other directories
+  ####################################
+
+  # Install hadoop
+    yum -y install hadoop hadoop-client
+    
+  # "install the compression libraries, snappy and LZL" <-- no clue what these are or when they will be needed
     yum -y install snappy snappy-devel
 
-# yum installs code into /usr/bin and then creates other directories
+  ####################################
+  # Operational dir location (alternative to /usr/local/opt or /opt):
+  #   Soft links:     /usr/hdeco
+  ####################################
 
-# File system layout best practice:
-#   Code base:      /usr/lib/<component>
-#   Config files:   /etc/<component>/conf
-#   Data files:     /var/db/<component>
-#   Log files:      /var/log/<component>
-#   Pid files:      /var/run/<component>
-#   Working dir:    /home/hduser/<component>
-
-# Operational dir location (alternative to /usr/local/opt or /opt):
-#   Soft links:     /usr/hdeco
-
-# Create op dir for soft links
+  # Create op dir for soft links
     mkdir /usr/hdeco
     which hadoop            # /usr/bin/hadoop
     which hadoop | ls -l    # hadoop -> /usr/hdp/current/hadoop-client
+  # Create "swing links" for operational code
     ln -s /usr/hdp/current/hadoop-client /usr/hdeco/hadoop
-    ls -l /usr/hdeco/hadoop # /usr/hdeco/hadoop -> /usr/hdp/current/hadoop-client
+    ln -s /usr/hdp/current/hadoop-mapreduce-client /usr/hdeco/mapreduce
 
-# chown the conf dir and its files (from root:root) to allow r/w by hduser
+    ls -l /usr/hdeco/   # /usr/hdeco/hadoop -> /usr/hdp/current/hadoop-client
+                        # /usr/hdeco/mapreduce -> /usr/hdp/current/hadoop-mapreduce-client
+
+  # chown the conf dir and its files (from root:root) to allow r/w by hduser
     ls -l /etc/hadoop       # conf  # a directory (not a link)
     ls -l /etc/hadoop/conf  # contains *-env.sh and *-site.xml files
     chown -R hduser:hadoop /etc/hadoop/conf
     ls -ld /etc/hadoop/conf |grep -e "hduser *hadoop"   # dir is owned by hduser hadoop
     ls -l /etc/hadoop/conf |grep -e "hduser *hadoop"    # all files are owned by hduser hadoop
 
-# make working dir in home dir to make it easier to admin and operate hadoop
+  # make input dir
+    su hduser
+    cd /home/hduser
+    mkdir input
+
+  # make db dir
+    sudo mkdir /var/db/hdfs
+    sudo chown -R hduser:hadoop /var/db/hdfs
+
+  # make working dir in home dir to make it easier to admin and operate hadoop
     su hduser
     cd /home/hduser
     mkdir hadoop
     cd hadoop
+    ln -s /etc/hadoop/conf conf
+    cd conf
+    ls -l
+    touch test
+    ls |grep test
+    rm test
+    rm *.cmd *.bat
 
-#################
-# On each node
-#################
+  # link to db dir in home dir
+    su hduser
+    cd /home/hduser/hadoop
+    ln -s /var/db/hdfs hdfs
+    cd hdfs
+    mkdir namenode datanode checkpoint
+
+  # make .hadooprc file
+    su hduser
+    cd /home/hduser
+    vi .hadooprc ; # add these lines:
+                    # .hadooprc
+                    # set opt install dir
+                        export OPT_DIR="/usr/hdeco"
+                    # set hadoop home dir
+                        export HADOOP_COMMON_HOME="$OPT_DIR/hadoop"
+                    # set hadoop path
+                        export PATH="$PATH:$HADOOP_COMMON_HOME/sbin"
+
+    source .bashrc
+    echo $PATH | grep "/usr/hdeco/hadoop/sbin"
+
+  # test installation
+    hadoop version
+    hadoop
+
+  ####################################
+  # file locations
+  ####################################
+  ls -l /usr/hdeco/hadoop       ; # jar files are in /usr/hdeco/hadoop
+  ls -l /usr/hdeco/hadoop/bin   ; # hadoop operations files
+  ls -l /usr/hdeco/hadoop/sbin  ; # sysadmin scripts for hadoop cluster
+  ls -l /usr/bin/hadoop         ; # /usr/bin/hadoop -> /usr/hdp/current/hadoop-client/bin/hadoop
+  ls -l /usr/bin/hdfs           ; # /usr/bin/hdfs -> /usr/hdp/current/hadoop-client/bin/hdfs
+
+  
+
+  #################
+  # On each node:
+  #################
   # change hostname
     hostnamectl set-hostname hdcentos
     hostname
@@ -140,7 +207,7 @@
     adduser hduser
     passwd hduser
 
-#################
+  #################
 
 
 # ------------
@@ -157,11 +224,12 @@
     # test PASSED
     ./nodes_cmd.exp root "cat /etc/hosts |grep 10.0.3"
 
-# update packages
+  ####################################
+  # update packages
     ./nodes_cmd.exp root "yum update"
     # type "proceed" to return from interact
 
-# install wget
+  # install wget
     pkg="wget"
     ./nodes_cmd.exp root "yum install $pkg";done
     # type "proceed" to return from interact after install on ea node
@@ -169,13 +237,14 @@
     # test
     ./nodes_cmd.exp <username> "which wget"
 
-# get hadoop
+  # get hadoop
     ssh root@hmaster
     cd /opt
     wget http://mirror.reverse.net/pub/apache/hadoop/common/current/hadoop-3.0.0-alpha2.tar.gz
     tar -xzf hadoop-3.0.0-alpha2.tar.gz
     rm hadoop-3.0.0-alpha2.tar.gz
     mv hadoop-3.0.0-alpha2 /opt/hadoop
+  ####################################
 
 # propagate to slave nodes
     cd /opt
