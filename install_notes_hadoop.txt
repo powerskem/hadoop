@@ -89,6 +89,10 @@
     ssh hdcentos  # make sure it connects without asking for a passwd
 
   ####################################
+  # yum installs code into /usr/bin and then creates other directories
+  ####################################
+  #TODO - double check this...I don't think it's accurate
+  #
   # File system layout best practice:
   #   Code base:      /usr/lib/<component>
   #   Config files:   /etc/<component>/conf
@@ -98,12 +102,9 @@
   #   Working dir:    /home/hduser/<component>
   ####################################
 
-  ####################################
-  # yum installs code into /usr/bin and then creates other directories
-  ####################################
-
   # Install hadoop
     yum -y install hadoop hadoop-client
+    yum -y install hadoop-hdfs
     
   # "install the compression libraries, snappy and LZL" <-- no clue what these are or when they will be needed
     yum -y install snappy snappy-devel
@@ -117,12 +118,24 @@
     mkdir /usr/hdeco
     which hadoop            # /usr/bin/hadoop
     which hadoop | ls -l    # hadoop -> /usr/hdp/current/hadoop-client
-  # Create "swing links" for operational code
-    ln -s /usr/hdp/current/hadoop-client /usr/hdeco/hadoop
-    ln -s /usr/hdp/current/hadoop-mapreduce-client /usr/hdeco/mapreduce
 
-    ls -l /usr/hdeco/   # /usr/hdeco/hadoop -> /usr/hdp/current/hadoop-client
-                        # /usr/hdeco/mapreduce -> /usr/hdp/current/hadoop-mapreduce-client
+  # Verify locations
+    ls -l /usr/hdp/current
+
+  # Create "swing links" for operational code
+    cd /usr/hdeco
+    ln -s /usr/hdp/current/hadoop-client hadoop
+    ln -s /usr/hdp/current/hadoop-mapreduce-client hadoop-mapreduce
+    ln -s /usr/hdp/current/hadoop-hdfs-client hadoop-hdfs
+
+    ls -l   # hadoop -> /usr/hdp/current/hadoop-client
+            # hadoop-mapreduce -> /usr/hdp/current/hadoop-mapreduce-client
+            # hadoop-hdfs -> /usr/hdp/current/hadoop-mapreduce-client
+
+  #TODO Determine if the current build requires this
+  # Create a libexec link from hadoop-hdfs dir to point to hadoop/libexec
+    cd hadoop-hdfs
+    ln -s /usr/hdeco/hadoop/libexec libexec
 
   # chown the conf dir and its files (from root:root) to allow r/w by hduser
     ls -l /etc/hadoop       # conf  # a directory (not a link)
@@ -160,6 +173,17 @@
     cd hdfs
     mkdir namenode datanode checkpoint
 
+  # link to log and run dirs in home dir
+    su hduser
+    cd /home/hduser/hadoop
+    mkdir log
+    mkdir run
+    ln -s /var/log/hadoop/hdfs log/hdfs
+    ln -s /var/run/hadoop/hdfs run/hdfs
+  #TODO see if this is right...
+  #sudo chown -R hduser:hadoop /var/log/hadoop/hdfs
+  #sudo chown -R hduser:hadoop /var/run/hadoop/hdfs
+
   # make .hadooprc file
     su hduser
     cd /home/hduser
@@ -187,7 +211,7 @@
   ls -l /usr/hdeco/hadoop/sbin  ; # sysadmin scripts for hadoop cluster
   ls -l /usr/bin/hadoop         ; # /usr/bin/hadoop -> /usr/hdp/current/hadoop-client/bin/hadoop
   ls -l /usr/bin/hdfs           ; # /usr/bin/hdfs -> /usr/hdp/current/hadoop-client/bin/hdfs
-
+  ####################################
   
 
   #################
