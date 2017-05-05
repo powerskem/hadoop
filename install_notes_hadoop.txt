@@ -180,7 +180,7 @@
     mkdir run
     ln -s /var/log/hadoop/hdfs log/hdfs
     ln -s /var/run/hadoop/hdfs run/hdfs
-  #TODO see if this is right...
+  #TODO see if this is right...and then goto "Edit config files" section
   #sudo chown -R hduser:hadoop /var/log/hadoop/hdfs
   #sudo chown -R hduser:hadoop /var/run/hadoop/hdfs
 
@@ -193,8 +193,10 @@
                         export OPT_DIR="/usr/hdeco"
                     # set hadoop home dir
                         export HADOOP_COMMON_HOME="$OPT_DIR/hadoop"
-                    # set hadoop path
+                        export HADOOP_HDFS_HOME="$OPT_DIR/hadoop-hdfs"
+                    # set hadoop paths
                         export PATH="$PATH:$HADOOP_COMMON_HOME/sbin"
+                        export PATH="$PATH:$HADOOP_HDFS_HOME/sbin"
 
     source .bashrc
     echo $PATH | grep "/usr/hdeco/hadoop/sbin"
@@ -202,6 +204,42 @@
   # test installation
     hadoop version
     hadoop
+
+  # Edit config files
+    mydate="$(date +%Y-%m-%d)"
+    su hduser
+    cd /home/hduser/hadoop/conf
+    cp hadoop-env.sh hadoop-env.sh.orig.$mydate
+    vi hadoop-env.sh ;  # find LOG_DIR, add line: 
+                        export HADOOP_LOG_DIR="/var/log/hadoop-hdfs"
+                        # find PID_DIR, add line:
+                        export HADOOP_PID_DIR="/var/run/hadoop-hdfs"
+    cp core-site.xml core-site.xml.orig.$mydate
+    vi core-site.xml ;  # add a property:
+                        <property>
+                            <name>fs.default.name</name>
+                            <value>hdfs://hdcentos:9000</value>
+                        </property>
+    if [ -f hdfs-site.xml ]; then cp hdfs-site.xml hdfs-site.xml.orig.$mydate ; fi
+    cp /usr/hdeco/hadoop/../etc/hadoop/conf.empty/hdfs-site.xml .
+    vi hdfs-site.xml ; # add site-specific properties:
+                        <property>
+                            <name>dfs.replication</name>
+                            <value>1</value>
+                        </property>
+                        <property>
+                            <name>dfs.namenode.name.dir</name>
+                            <value>file:/var/db/hdfs/namenode</value>
+                        </property>
+                        <property>
+                            <name>dfs.datanode.name.dir</name>
+                            <value>file:/var/db/hdfs/datanode</value>
+                        </property>
+
+  # TEST CONFIG
+    su hduser
+    hdfs namenode -format
+    ls ~/hadoop/hdfs/namenode/current
 
   ####################################
   # file locations
