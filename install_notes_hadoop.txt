@@ -180,9 +180,10 @@
     mkdir run
     ln -s /var/log/hadoop/hdfs log/hdfs
     ln -s /var/run/hadoop/hdfs run/hdfs
-  #TODO see if this is right...and then goto "Edit config files" section
-  #sudo chown -R hduser:hadoop /var/log/hadoop/hdfs
-  #sudo chown -R hduser:hadoop /var/run/hadoop/hdfs
+
+  # Make sure log files are writable by hduser - They are set in the hadoop-env.sh file
+  sudo chown -R hduser:hadoop /var/log/hadoop/hdfs
+  sudo chown -R hduser:hadoop /var/run/hadoop/hdfs
 
   # make .hadooprc file
     su hduser
@@ -211,9 +212,9 @@
     cd /home/hduser/hadoop/conf
     cp hadoop-env.sh hadoop-env.sh.orig.$mydate
     vi hadoop-env.sh ;  # find LOG_DIR, add line: 
-                        export HADOOP_LOG_DIR="/var/log/hadoop-hdfs"
+                        export HADOOP_LOG_DIR="/var/log/hadoop/hdfs"
                         # find PID_DIR, add line:
-                        export HADOOP_PID_DIR="/var/run/hadoop-hdfs"
+                        export HADOOP_PID_DIR="/var/run/hadoop/hdfs"
     cp core-site.xml core-site.xml.orig.$mydate
     vi core-site.xml ;  # add a property:
                         <property>
@@ -240,6 +241,29 @@
     su hduser
     hdfs namenode -format
     ls ~/hadoop/hdfs/namenode/current
+
+  ####################################
+  #TODO move this to a separate shell script
+  # start the daemons for pseudo-distrib mode IN THIS ORDER
+    hadoop-daemon.sh start namenode
+    hadoop-daemon.sh start datanode
+    hadoop-daemon.sh start secondarynamenode
+  # List java processes
+    jps ; # should be all three showing
+  # Use hdfs dfs to ls root dir
+    hdfs dfs -ls / ; # should give no output
+  # find errors
+    ls /home/hduser/hadoop/log/hdfs
+    grep ERR /home/hduser/hadoop/log/hdfs/*
+  #TODO fwd port from host to vm
+  #TODO check web server for hdfs:
+    #hdcentos:50070
+  # shut down daemons IN THIS ORDER  
+    hadoop-daemon.sh stop secondarynamenode
+    hadoop-daemon.sh stop datanode
+    hadoop-daemon.sh stop namenode
+  # List java processes
+    jps ; # should be none showing
 
   ####################################
   # file locations
