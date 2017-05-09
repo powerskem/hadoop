@@ -461,6 +461,9 @@
     systemctl isolate graphical.target ; # switch to run level 5 now
 
   ####################################
+  # odd thing is after I installed desktop, all /var/db/hdfs permissions now say hduser:hduser
+
+  ####################################
   # file locations
   #TODO verify these
   ####################################
