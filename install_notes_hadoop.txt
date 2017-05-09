@@ -102,12 +102,14 @@
   #   Working dir:    /home/hduser/<component>
   ####################################
 
-  # Install hadoop
-    yum -y install hadoop hadoop-client
-    yum -y install hadoop-hdfs
+  # Install hadoop as root
+    sudo yum -y install hadoop hadoop-client
+    sudo yum -y install hadoop-hdfs hadoop-libhdfs; # HDFS
+    sudo yum -y install hadoop-yarn; # YARN
+    sudo yum -y install hadoop-mapreduce; # MAPR
     
   # "install the compression libraries, snappy and LZL" <-- no clue what these are or when they will be needed
-    yum -y install snappy snappy-devel
+    sudo yum -y install snappy snappy-devel
 
   ####################################
   # Operational dir location (alternative to /usr/local/opt or /opt):
@@ -124,18 +126,25 @@
 
   # Create "swing links" for operational code
     cd /usr/hdeco
-    ln -s /usr/hdp/current/hadoop-client hadoop
-    ln -s /usr/hdp/current/hadoop-mapreduce-client hadoop-mapreduce
-    ln -s /usr/hdp/current/hadoop-hdfs-client hadoop-hdfs
+    sudo ln -s /usr/hdp/current/hadoop-client hadoop
+    sudo ln -s /usr/hdp/current/hadoop-hdfs-client hadoop-hdfs ; # HDFS
+    sudo ln -s /usr/hdp/current/hadoop-yarn-client hadoop-yarn ; # YARN
+    sudo ln -s /usr/hdp/current/hadoop-mapreduce-client hadoop-mapreduce ; # MAPR
 
     ls -l   # hadoop -> /usr/hdp/current/hadoop-client
-            # hadoop-mapreduce -> /usr/hdp/current/hadoop-mapreduce-client
-            # hadoop-hdfs -> /usr/hdp/current/hadoop-mapreduce-client
+            # hadoop-hdfs -> /usr/hdp/current/hadoop-hdfs-client ; # HDFS
+            # hadoop-mapreduce -> /usr/hdp/current/hadoop-mapreduce-client ; # MAPR
+            # hadoop-yarn -> /usr/hdp/current/hadoop-yarn-client ; # YARN
 
   #TODO Determine if the current build requires this
-  # Create a libexec link from hadoop-hdfs dir to point to hadoop/libexec
-    cd hadoop-hdfs
-    ln -s /usr/hdeco/hadoop/libexec libexec
+  # Create libexec links from hadoop-hdfs and hadoop-yarn dirs
+  # to point back to /usr/hdeco/hadoop/libexec dir
+    cd /usr/hdeco/hadoop-hdfs
+    sudo ln -s /usr/hdeco/hadoop/libexec libexec; # HDFS
+    cd /usr/hdeco/hadoop-yarn
+    sudo ln -s /usr/hdeco/hadoop/libexec libexec; # YARN
+    cd /usr/hdeco/hadoop-mapreduce
+    sudo ln -s /usr/hdeco/hadoop/libexec libexec; # MAPR
 
   # chown the conf dir and its files (from root:root) to allow r/w by hduser
     ls -l /etc/hadoop       # conf  # a directory (not a link)
@@ -150,8 +159,8 @@
     mkdir input
 
   # make db dir
-    sudo mkdir /var/db/hdfs
-    sudo chown -R hduser:hadoop /var/db/hdfs
+    sudo mkdir /var/db/hdfs; # HDFS
+    sudo chown -R hduser:hadoop /var/db/hdfs; # HDFS
 
   # make working dir in home dir to make it easier to admin and operate hadoop
     su hduser
@@ -169,21 +178,29 @@
   # link to db dir in home dir
     su hduser
     cd /home/hduser/hadoop
-    ln -s /var/db/hdfs hdfs
+    ln -s /var/db/hdfs hdfs; # HDFS
     cd hdfs
-    mkdir namenode datanode checkpoint
+    mkdir namenode datanode checkpoint; # HDFS
 
   # link to log and run dirs in home dir
     su hduser
     cd /home/hduser/hadoop
     mkdir log
     mkdir run
-    ln -s /var/log/hadoop/hdfs log/hdfs
-    ln -s /var/run/hadoop/hdfs run/hdfs
+    ln -s /var/log/hadoop/hdfs log/hdfs; # HDFS
+    ln -s /var/run/hadoop/hdfs run/hdfs; # HDFS
+    ln -s /var/log/hadoop/yarn log/yarn; # YARN
+    ln -s /var/run/hadoop/yarn run/yarn; # YARN
+    ln -s /var/log/hadoop/mapreduce log/mapreduce; # MAPR
+    ln -s /var/run/hadoop/mapreduce run/mapreduce; # MAPR
 
   # Make sure log files are writable by hduser - They are set in the hadoop-env.sh file
-  sudo chown -R hduser:hadoop /var/log/hadoop/hdfs
-  sudo chown -R hduser:hadoop /var/run/hadoop/hdfs
+  sudo chown -R hduser:hadoop /var/log/hadoop/hdfs; # HDFS
+  sudo chown -R hduser:hadoop /var/run/hadoop/hdfs; # HDFS
+  sudo chown -R hduser:hadoop /var/log/hadoop/yarn; # YARN
+  sudo chown -R hduser:hadoop /var/run/hadoop/yarn; # YARN
+  sudo chown -R hduser:hadoop /var/log/hadoop/mapreduce; # MAPR
+  sudo chown -R hduser:hadoop /var/run/hadoop/mapreduce; # MAPR
 
   # make .hadooprc file
     su hduser
@@ -194,10 +211,14 @@
                         export OPT_DIR="/usr/hdeco"
                     # set hadoop home dir
                         export HADOOP_COMMON_HOME="$OPT_DIR/hadoop"
-                        export HADOOP_HDFS_HOME="$OPT_DIR/hadoop-hdfs"
+                        export HADOOP_HDFS_HOME="$OPT_DIR/hadoop-hdfs"; # HDFS
+                        export HADOOP_YARN_HOME="$OPT_DIR/hadoop-yarn"; # YARN
+                        export HADOOP_MAPRED_HOME="$OPT_DIR/hadoop-mapreduce"; # MAPR
                     # set hadoop paths
                         export PATH="$PATH:$HADOOP_COMMON_HOME/sbin"
-                        export PATH="$PATH:$HADOOP_HDFS_HOME/sbin"
+                        export PATH="$PATH:$HADOOP_HDFS_HOME/sbin"; # HDFS
+                        export PATH="$PATH:$HADOOP_YARN_HOME/sbin"; # YARN
+                        export PATH="$PATH:$HADOOP_MAPRED_HOME/sbin"; # MAPR
 
     source .bashrc
     echo $PATH | grep "/usr/hdeco/hadoop/sbin"
@@ -206,15 +227,18 @@
     hadoop version
     hadoop
 
-  # Edit config files
+  ####################################
+  # Edit config files for HDFS
+  ####################################
+
     mydate="$(date +%Y-%m-%d)"
     su hduser
     cd /home/hduser/hadoop/conf
     cp hadoop-env.sh hadoop-env.sh.orig.$mydate
     vi hadoop-env.sh ;  # find LOG_DIR, add line: 
-                        export HADOOP_LOG_DIR="/var/log/hadoop/hdfs"
+                        export HADOOP_LOG_DIR="/var/log/hadoop/hdfs"; # HDFS
                         # find PID_DIR, add line:
-                        export HADOOP_PID_DIR="/var/run/hadoop/hdfs"
+                        export HADOOP_PID_DIR="/var/run/hadoop/hdfs"; # HDFS
     cp core-site.xml core-site.xml.orig.$mydate
     vi core-site.xml ;  # add a property:
                         <property>
@@ -237,45 +261,216 @@
                             <value>file:/var/db/hdfs/datanode</value>
                         </property>
 
-  # TEST CONFIG
+  ####################################
+  # TEST CONFIG for HDFS
+  ####################################
+
     su hduser
     hdfs namenode -format
     ls ~/hadoop/hdfs/namenode/current
 
   ####################################
+  # RUN HDFS
   #TODO move this to a separate shell script
+  ####################################
+
   # start the daemons for pseudo-distrib mode IN THIS ORDER
     hadoop-daemon.sh start namenode
     hadoop-daemon.sh start datanode
     hadoop-daemon.sh start secondarynamenode
+
   # List java processes
     jps ; # should be all three showing
+
   # Use hdfs dfs to ls root dir
     hdfs dfs -ls / ; # should give no output
+
   # find errors
     ls /home/hduser/hadoop/log/hdfs
     grep ERR /home/hduser/hadoop/log/hdfs/*
+
   #TODO fwd port from host to vm
   #TODO check web server for hdfs:
     #hdcentos:50070
+
   # shut down daemons IN THIS ORDER  
     hadoop-daemon.sh stop secondarynamenode
     hadoop-daemon.sh stop datanode
     hadoop-daemon.sh stop namenode
+
   # List java processes
     jps ; # should be none showing
 
   ####################################
-  # file locations
+  # Edit config files for YARN
   ####################################
-  ls -l /usr/hdeco/hadoop       ; # jar files are in /usr/hdeco/hadoop
-  ls -l /usr/hdeco/hadoop/bin   ; # hadoop operations files
-  ls -l /usr/hdeco/hadoop/sbin  ; # sysadmin scripts for hadoop cluster
-  ls -l /usr/bin/hadoop         ; # /usr/bin/hadoop -> /usr/hdp/current/hadoop-client/bin/hadoop
-  ls -l /usr/bin/hdfs           ; # /usr/bin/hdfs -> /usr/hdp/current/hadoop-client/bin/hdfs
+
+    mydate="$(date +%Y-%m-%d)"
+    su hduser
+    cd /home/hduser/hadoop/conf
+    if [ -f yarn-env.sh ]; then cp yarn-env.sh yarn-env.sh.orig.$mydate ; fi
+    cp /usr/hdeco/hadoop/../etc/hadoop/conf.empty/yarn-env.sh .
+    vi yarn-env.sh ;  # find YARN_LOG_DIR, change line: 
+                        export YARN_LOG_DIR="/var/log/hadoop/yarn"; # YARN
+                        # add line:
+                        export YARN_PID_DIR="/var/run/hadoop/yarn"; # YARN
+    if [ -f yarn-site.xml ]; then cp yarn-site.xml yarn-site.xml.orig.$mydate ; fi
+    cp /usr/hdeco/hadoop/../etc/hadoop/conf.empty/yarn-site.xml .
+    vi yarn-site.xml ; # add site-specific properties:
+                        <property>
+                            <name>yarn.resourcemanager.address</name>
+                            <value>hdcentos:8032</value>
+                        </property>
+                        <property>
+                            <name>yarn.resourcemanager.scheduler.address</name>
+                            <value>hdcentos:8030</value>
+                        </property>
+                        <property>
+                            <name>yarn.resourcemanager.tracker.address</name>
+                            <value>hdcentos:8031</value>
+                        </property>
+                        <property>
+                            <name>yarn.nodemanager.aux-service</name>
+                            <value>mapreduce_shuffle</value>
+                        </property>
+                        <property>
+                            <name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+                            <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+                        </property>
+                        <property>
+                            <name>yarn.application.classpath</name>
+                            <value>.,/usr/hdeco/hadoop/*,/usr/hdeco/hadoop/lib/*,/usr/hdeco/hadoop-hdfs/*,/usr/hdeco/hadoop-hdfs/lib/*,/usr/hdeco/hadoop-yarn/*,/usr/hdeco/hadoop-yarn/lib/*,/usr/hdeco/hadoop-mapreduce/*,/usr/hdeco/hadoop-mapreduce/lib/*</value>
+                        </property>
+
+  ####################################
+  # RUN YARN
+  #TODO move this to a separate shell script
+  ####################################
+
+  # start the daemon
+    hadoop-daemon.sh start namenode
+    hadoop-daemon.sh start datanode
+    hadoop-daemon.sh start secondarynamenode
+    yarn-daemon.sh start resourcemanager
+    yarn-daemon.sh start nodemanager
+
+  # List java processes
+    jps ; # should show 2 new processes
+
+  # find errors
+    ls /home/hduser/hadoop/log/yarn
+    grep ERR /home/hduser/hadoop/log/yarn/*
+
+  # shut down daemons IN THIS ORDER  
+    yarn-daemon.sh stop nodemanager
+    yarn-daemon.sh stop resourcemanager
+    hadoop-daemon.sh stop secondarynamenode
+    hadoop-daemon.sh stop datanode
+    hadoop-daemon.sh stop namenode
+
+  # List java processes
+    jps ; # should be none showing
+
+  #TODO fwd port from host to vm
+  #TODO check web server for hdfs:
+    #http://hdcentos:8088
+
+  ####################################
+  # Edit config files for MAPR
+  ####################################
+
+    mydate="$(date +%Y-%m-%d)"
+    su hduser
+    cd /home/hduser/hadoop/conf
+    if [ -f mapred-env.sh ]; then cp mapred-env.sh mapred-env.sh.orig.$mydate ; fi
+    vi mapred-env.sh ;  # find HADOOP_MAPRED_LOG_DIR, change line: 
+                        export HADOOP_MAPRED_LOG_DIR="/var/log/hadoop/mapreduce" ; # MAPR
+                        # add line:
+                        export HADOOP_MAPRED_PID_DIR="/var/run/hadoop/mapreduce" ; # MAPR
+    if [ -f mapred-site.xml ]; then cp mapred-site.xml mapred-site.xml.orig.$mydate ; fi
+    cp /usr/hdeco/hadoop/../etc/hadoop/conf.empty/mapred-site.xml .
+    vi mapred-site.xml ; # add site-specific properties:
+                        <property>
+                            <name>mapreduce.framework.name</name>
+                            <value>yarn</value>
+                        </property>
+                        <property>
+                            <name>mapreduce.jobhistory.address</name>
+                            <value>hdcentos:10020</value>
+                        </property>
+
+  ####################################
+  # RUN MAPR
+  #TODO move this to a separate shell script
+  ####################################
+
+  # start the daemon
+    hadoop-daemon.sh start namenode
+    hadoop-daemon.sh start datanode
+    hadoop-daemon.sh start secondarynamenode
+    yarn-daemon.sh start resourcemanager
+    yarn-daemon.sh start nodemanager
+    mr-jobhistory-daemon.sh start historyserver
+
+  # List java processes
+    jps
+
+  # Check status
+    hdfs dfsadmin -report
+
+  # shut down daemons IN THIS ORDER
+    mr-jobhistory-daemon.sh stop historyserver
+    yarn-daemon.sh stop nodemanager
+    yarn-daemon.sh stop resourcemanager
+    hadoop-daemon.sh stop secondarynamenode
+    hadoop-daemon.sh stop datanode
+    hadoop-daemon.sh stop namenode
+
+  ####################################
+  ####################################
+  # RUNNING
+  ####################################
+    hdfs ; # gives commands
+  # make a dir for data
+    mkdir /home/hduser/data
+    hdfs dfs -ls
+    hdfs dfs -mkdir -p /user/hduser/books
+    hdfs dfs -ls
+    hdfs dfs -put 2074-0.txt books
+    hdfs dfs -ls books ; # verify it's there
+    hdfs dfs -cat books/2074-0.txt ; # verify its contents
+
+  ####################################
+    #hdfs dfs -rm books/out/*
+    #hdfs dfs -rmdir books/out
+    hadoop jar /usr/hdeco/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.1.2.3.0.0-2557.jar wordcount books/2074-0.txt books/out
+    hdfs dfs -ls books/out
+    hdfs dfs -cat books/out/part-r-00000 |sort -k2 -n | tail
+  ####################################
+    hadoop jar /usr/hdeco/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.1.2.3.0.0-2557.jar pi 2 8
+
+  ####################################
+    mydate="$(date +%Y-%m-%d)"
+    grep -r ERR hadoop/log/* |grep $mydate
+  ####################################
+    yum -y groups install "GNOME Desktop"
+    startx ; # start up gui now
+
+    systemctl get-default
+    #systemctl set-default graphical.target ; # change default startup run level
+    systemctl isolate graphical.target ; # switch to run level 5 now
+
+  ####################################
+  # file locations
+  #TODO verify these
+  ####################################
+  ls -l /usr/hdeco/hadoop      ; # jar files are in /usr/hdeco/hadoop
+  ls -l /usr/hdeco/hadoop/bin  ; # hadoop operations files
+  ls -l /usr/hdeco/hadoop/sbin ; # sysadmin scripts for hadoop cluster
+  ls -l /usr/bin/hadoop        ; # /usr/bin/hadoop -> /usr/hdp/current/hadoop-client/bin/hadoop
+  ls -l /usr/bin/hdfs          ; # /usr/bin/hdfs -> /usr/hdp/current/hadoop-client/bin/hdfs
   ####################################
   
-
   #################
   # On each node:
   #################
