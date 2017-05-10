@@ -1,14 +1,27 @@
+#!/bin/less
+#
+# install_notes_hadoop.txt
+#
+# KP Chase
+#
+# For installing and configuring and running Hadoop on CentOS-7
+################################################################
+
+
+  ################################################################################################
+  # Create the first VM with CentOS-7 minimal install.
+  # This VM will be cloned to create other nodes after Hadoop is installed.
+  ################################################################################################
+
   #################
-  # On first vm:
+  # Install Hadoop
   #################
     su -
-    cd ~hadoop
     ls /etc/yum.repos.d/
   # Use HortonWorks HDP Repo
     sudo curl -O public-repo-1.hortonworks.com/HDP/centos7/2.x/updates/2.3.0.0/hdp.repo
     sudo mv hdp.repo /etc/yum.repos.d/.
     ll /etc/yum.repos.d/hdp.repo 
-  #TODO copy hdp.repo to remaining vms?
     sudo yum -y install epel-release
     sudo yum -y repolist enable
   # search for HDP stack repos
@@ -26,7 +39,7 @@
   #TODO install lib for sql and ldap
   # yum install libxml2-devel libxsit-devel
   # yum install libsqlite ldap
-  #TODO check hadoop/java compatability charts \ 
+  # check hadoop/java compatability charts \ 
     # @ https://wiki.apache.org/hadoop/HadoopJavaVersions
   # Check current installed java version
     java -version
@@ -60,13 +73,13 @@
     hostnamectl set-hostname hdcentos
     hostname
   # change hosts file
-    vi /etc/hosts ;     # add line as \
-        127.0.0.1    hdcentos
+    vi /etc/hosts ;     # add line:
+                            127.0.0.1    hdcentos
   # reboot
     reboot
     hostname
 
-  # create users
+  # create Hadoop main user
     adduser hduser
     passwd hduser
 
@@ -91,8 +104,7 @@
   ####################################
   # yum installs code into /usr/bin and then creates other directories
   ####################################
-  #TODO - double check this...I don't think it's accurate
-  #
+  ####################################
   # File system layout best practice:
   #   Code base:      /usr/lib/<component>
   #   Config files:   /etc/<component>/conf
@@ -108,8 +120,8 @@
     sudo yum -y install hadoop-yarn; # YARN
     sudo yum -y install hadoop-mapreduce; # MAPR
     
-  # "install the compression libraries, snappy and LZL" <-- no clue what these are or when they will be needed
-    sudo yum -y install snappy snappy-devel
+  #TODO "install the compression libraries, snappy and LZL" <-- no clue what these are for
+  # sudo yum -y install snappy snappy-devel
 
   ####################################
   # Operational dir location (alternative to /usr/local/opt or /opt):
@@ -136,9 +148,24 @@
             # hadoop-mapreduce -> /usr/hdp/current/hadoop-mapreduce-client ; # MAPR
             # hadoop-yarn -> /usr/hdp/current/hadoop-yarn-client ; # YARN
 
-  #TODO Determine if the current build requires this
+  ####################################
+  # verify file locations
+  ####################################
+  # jar files are in /usr/hdp/current/hadoop-client -> /usr/hdp/2.3.0.0-2557/hadoop
+    ls -l /usr/hdeco/hadoop
+  # hadoop operations files (hadoop, hdfs, yarn, mapred) are in:
+    ls -l /usr/hdeco/hadoop/bin
+  # sysadmin scripts (hadoop-daemon.sh, slaves.sh) are in:
+    ls -l /usr/hdeco/hadoop/sbin
+  # hadoop executable is /usr/bin/hadoop -> /usr/hdp/current/hadoop-client/bin/hadoop
+    ls -l /usr/bin/hadoop
+  # hdfs executable is /usr/bin/hdfs -> /usr/hdp/current/hadoop-hdfs-client/bin/hdfs
+    ls -l /usr/bin/hdfs
+  ####################################
+
   # Create libexec links from hadoop-hdfs and hadoop-yarn dirs
   # to point back to /usr/hdeco/hadoop/libexec dir
+  # (Newer builds may not require this)
     cd /usr/hdeco/hadoop-hdfs
     sudo ln -s /usr/hdeco/hadoop/libexec libexec; # HDFS
     cd /usr/hdeco/hadoop-yarn
@@ -147,11 +174,11 @@
     sudo ln -s /usr/hdeco/hadoop/libexec libexec; # MAPR
 
   # chown the conf dir and its files (from root:root) to allow r/w by hduser
-    ls -l /etc/hadoop       # conf  # a directory (not a link)
-    ls -l /etc/hadoop/conf  # contains *-env.sh and *-site.xml files
+    ls -l /etc/hadoop ;     # contains conf, a directory (not a link)
+    ls /etc/hadoop/conf ;   # contains *-env.sh and *-site.xml files
     chown -R hduser:hadoop /etc/hadoop/conf
-    ls -ld /etc/hadoop/conf |grep -e "hduser *hadoop"   # dir is owned by hduser hadoop
-    ls -l /etc/hadoop/conf |grep -e "hduser *hadoop"    # all files are owned by hduser hadoop
+    ls -ld /etc/hadoop/conf |grep -e "hduser *hadoop" ; # dir is owned by hduser hadoop
+    ls -l /etc/hadoop/conf |grep -e "hduser *hadoop" ;  # all files are owned by hduser hadoop
 
   # make input dir
     su hduser
@@ -161,6 +188,7 @@
   # make db dir
     sudo mkdir /var/db/hdfs; # HDFS
     sudo chown -R hduser:hadoop /var/db/hdfs; # HDFS
+    ls -l /var/db/hdfs
 
   # make working dir in home dir to make it easier to admin and operate hadoop
     su hduser
@@ -168,12 +196,12 @@
     mkdir hadoop
     cd hadoop
     ln -s /etc/hadoop/conf conf
-    cd conf
-    ls -l
-    touch test
-    ls |grep test
-    rm test
-    rm *.cmd *.bat
+  # verify we can write to this dir
+    touch /home/hduser/hadoop/conf/test
+    ls /home/hduser/hadoop/conf/ |grep test
+    rm /home/hduser/hadoop/conf/test
+  # these files are not needed
+  # rm *.cmd *.bat
 
   # link to db dir in home dir
     su hduser
@@ -181,26 +209,37 @@
     ln -s /var/db/hdfs hdfs; # HDFS
     cd hdfs
     mkdir namenode datanode checkpoint; # HDFS
+    ls -l /home/hduser/hadoop/hdfs
 
-  # link to log and run dirs in home dir
+  # link to log dir in home dir
     su hduser
     cd /home/hduser/hadoop
     mkdir log
     mkdir run
     ln -s /var/log/hadoop/hdfs log/hdfs; # HDFS
-    ln -s /var/run/hadoop/hdfs run/hdfs; # HDFS
     ln -s /var/log/hadoop/yarn log/yarn; # YARN
-    ln -s /var/run/hadoop/yarn run/yarn; # YARN
     ln -s /var/log/hadoop/mapreduce log/mapreduce; # MAPR
-    ln -s /var/run/hadoop/mapreduce run/mapreduce; # MAPR
+    ls -l /home/hduser/hadoop/log/*
 
   # Make sure log files are writable by hduser - They are set in the hadoop-env.sh file
-  sudo chown -R hduser:hadoop /var/log/hadoop/hdfs; # HDFS
-  sudo chown -R hduser:hadoop /var/run/hadoop/hdfs; # HDFS
-  sudo chown -R hduser:hadoop /var/log/hadoop/yarn; # YARN
-  sudo chown -R hduser:hadoop /var/run/hadoop/yarn; # YARN
-  sudo chown -R hduser:hadoop /var/log/hadoop/mapreduce; # MAPR
-  sudo chown -R hduser:hadoop /var/run/hadoop/mapreduce; # MAPR
+    sudo chown -R hduser:hadoop /var/log/hadoop/hdfs; # HDFS
+    sudo chown -R hduser:hadoop /var/log/hadoop/yarn; # YARN
+    sudo chown -R hduser:hadoop /var/log/hadoop/mapreduce; # MAPR
+
+  # link to run dir in home dir
+    sudo mkdir -p  -m0755 /var/run/hadoop
+    sudo chown -R hduser:hadoop /var/run/hadoop
+    ln -s /var/run/hadoop/hdfs run/hdfs; # HDFS
+    ln -s /var/run/hadoop/yarn run/yarn; # YARN
+    ln -s /var/run/hadoop/mapreduce run/mapreduce; # MAPR
+    ls -l /home/hduser/hadoop/run/*
+
+########################################################################################
+  # this won't work if they are not running yet
+    sudo chown -R hduser:hadoop /var/run/hadoop/hdfs; # HDFS
+    sudo chown -R hduser:hadoop /var/run/hadoop/yarn; # YARN
+    sudo chown -R hduser:hadoop /var/run/hadoop/mapreduce; # MAPR
+########################################################################################
 
   # make .hadooprc file
     su hduser
@@ -270,7 +309,7 @@
     ls ~/hadoop/hdfs/namenode/current
 
   ####################################
-  # RUN HDFS
+  # START HDFS
   #TODO move this to a separate shell script
   ####################################
 
@@ -290,8 +329,7 @@
     grep ERR /home/hduser/hadoop/log/hdfs/*
 
   #TODO fwd port from host to vm
-  #TODO check web server for hdfs:
-    #hdcentos:50070
+  # check web server for hdfs -- Navigate in browser to http://hdcentos:50070
 
   # shut down daemons IN THIS ORDER  
     hadoop-daemon.sh stop secondarynamenode
@@ -343,7 +381,7 @@
                         </property>
 
   ####################################
-  # RUN YARN
+  # START YARN
   #TODO move this to a separate shell script
   ####################################
 
@@ -372,8 +410,7 @@
     jps ; # should be none showing
 
   #TODO fwd port from host to vm
-  #TODO check web server for hdfs:
-    #http://hdcentos:8088
+  # check web server for hdfs -- Navigate in browser to http://hdcentos:8088
 
   ####################################
   # Edit config files for MAPR
@@ -400,7 +437,7 @@
                         </property>
 
   ####################################
-  # RUN MAPR
+  # START MAPR
   #TODO move this to a separate shell script
   ####################################
 
@@ -426,13 +463,33 @@
     hadoop-daemon.sh stop datanode
     hadoop-daemon.sh stop namenode
 
+  ################################################################################################
+  # Test the installation
+  ################################################################################################
+
   ####################################
+  # RUN HADOOP IN PSEUDO-DISTRIBUTED MODE
   ####################################
-  # RUNNING
-  ####################################
+  # start the daemon
+    hadoop-daemon.sh start namenode
+    hadoop-daemon.sh start datanode
+    hadoop-daemon.sh start secondarynamenode
+    yarn-daemon.sh start resourcemanager
+    yarn-daemon.sh start nodemanager
+    mr-jobhistory-daemon.sh start historyserver
+
+  # List java processes
+    jps
+
+  # Check status
+    hdfs dfsadmin -report
+
+  # check web server for namenode -- Navigate in browser to http://hdcentos:50070
+  # check web server for resourcemanager -- Navigate in browser to http://hdcentos:8088
+
     hdfs ; # gives commands
-  # make a dir for data
-    mkdir /home/hduser/data
+  # make a dir for data (if not already done)
+  # mkdir /home/hduser/data
     hdfs dfs -ls
     hdfs dfs -mkdir -p /user/hduser/books
     hdfs dfs -ls
@@ -451,7 +508,7 @@
 
   ####################################
     mydate="$(date +%Y-%m-%d)"
-    grep -r ERR hadoop/log/* |grep $mydate
+    grep -r ERR /home/hduser/hadoop/log/* |grep $mydate
   ####################################
     yum -y groups install "GNOME Desktop"
     startx ; # start up gui now
@@ -463,17 +520,12 @@
   ####################################
   # odd thing is after I installed desktop, all /var/db/hdfs permissions now say hduser:hduser
 
-  ####################################
-  # file locations
-  #TODO verify these
-  ####################################
-  ls -l /usr/hdeco/hadoop      ; # jar files are in /usr/hdeco/hadoop
-  ls -l /usr/hdeco/hadoop/bin  ; # hadoop operations files
-  ls -l /usr/hdeco/hadoop/sbin ; # sysadmin scripts for hadoop cluster
-  ls -l /usr/bin/hadoop        ; # /usr/bin/hadoop -> /usr/hdp/current/hadoop-client/bin/hadoop
-  ls -l /usr/bin/hdfs          ; # /usr/bin/hdfs -> /usr/hdp/current/hadoop-client/bin/hdfs
-  ####################################
   
+  ################################################################################################
+  ################################################################################################
+  # Older instructions...
+  ################################################################################################
+
   #################
   # On each node:
   #################
