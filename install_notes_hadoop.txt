@@ -14,10 +14,28 @@
   ################################################################################################
 
   #################
+  # Install needed utilities
+  #################
+
+    su -
+    yum install update-java-alternatives
+    yum install git
+  #TODO
+    yum install wget
+    yum install tree
+    yum install expect
+
+  #################
+  # for testing...
+  #################
+  sudo rsync -rltuvzP ./src/ ~hduser/src/
+  sudo chown -R hduser:hadoop ~hduser/src/
+
+  #################
   # Install Hadoop
   #################
     su -
-    ls /etc/yum.repos.d/
+#T  ls /etc/yum.repos.d/
   # Use HortonWorks HDP Repo
     sudo curl -O public-repo-1.hortonworks.com/HDP/centos7/2.x/updates/2.3.0.0/hdp.repo
     sudo mv hdp.repo /etc/yum.repos.d/.
@@ -248,11 +266,13 @@
                     # .hadooprc
                     # set opt install dir
                         export OPT_DIR="/usr/hdeco"
-                    # set hadoop home dir
+                    # set hadoop home dirs
                         export HADOOP_COMMON_HOME="$OPT_DIR/hadoop"
                         export HADOOP_HDFS_HOME="$OPT_DIR/hadoop-hdfs"; # HDFS
                         export HADOOP_YARN_HOME="$OPT_DIR/hadoop-yarn"; # YARN
                         export HADOOP_MAPRED_HOME="$OPT_DIR/hadoop-mapreduce"; # MAPR
+                    #TODO set hadoop config dir
+                        export HADOOP_CONF_DIR=/etc/hadoop/conf
                     # set hadoop paths
                         export PATH="$PATH:$HADOOP_COMMON_HOME/sbin"
                         export PATH="$PATH:$HADOOP_HDFS_HOME/sbin"; # HDFS
@@ -463,12 +483,55 @@
     hadoop-daemon.sh stop datanode
     hadoop-daemon.sh stop namenode
 
+  ####################################
+  # Set up data dirs
+  ####################################
+    hdfs ; # gives commands
+  # make a dir for data (if not already done)
+  # mkdir /home/hduser/data
+    hdfs dfs -ls
+    hdfs dfs -mkdir -p /user/hduser/books
+    hdfs dfs -ls
+    hdfs dfs -put 2074-0.txt books
+    hdfs dfs -ls books ; # verify it's there
+    hdfs dfs -cat books/2074-0.txt ; # verify its contents
+
   ################################################################################################
   # Test the installation
   ################################################################################################
 
   ####################################
-  # RUN HADOOP IN PSEUDO-DISTRIBUTED MODE
+  # Install plain text browser in order to check web page
+  ####################################
+  # option #1, install entire desktop? ugh.
+  # (odd thing is... after I installed desktop, all /var/db/hdfs permissions now say hduser:hduser)
+    #yum -y groups install "GNOME Desktop"
+    #startx ; # start up gui now
+    #systemctl get-default
+    #systemctl set-default graphical.target ; # change default startup run level
+    #systemctl isolate graphical.target ; # switch to run level 5 now
+
+  # option #2, install lynx
+    sudo yum -y install lynx
+
+  # option #3, verify open ports with curl
+    curl -v http://hdcentos:50070
+    curl -v http://hdcentos:8088
+
+  ####################################
+  # On fresh startup...
+  ####################################
+  # Source /home/hduser/.bashrc
+    su hduser
+    cd /home/hduser
+    source .bashrc
+  # Add /var/run/hadoop dir and chown it
+    sudo mkdir -p  -m0755 /var/run/hadoop
+    sudo chown -R hduser:hadoop /var/run/hadoop
+    ls -l /var/run/hadoop
+ 
+  ####################################
+  # RUN HADOOP IN STAND-ALONE MODE?
   ####################################
   # start the daemon
     hadoop-daemon.sh start namenode
@@ -487,41 +550,52 @@
   # check web server for namenode -- Navigate in browser to http://hdcentos:50070
   # check web server for resourcemanager -- Navigate in browser to http://hdcentos:8088
 
-    hdfs ; # gives commands
-  # make a dir for data (if not already done)
-  # mkdir /home/hduser/data
-    hdfs dfs -ls
-    hdfs dfs -mkdir -p /user/hduser/books
-    hdfs dfs -ls
-    hdfs dfs -put 2074-0.txt books
-    hdfs dfs -ls books ; # verify it's there
-    hdfs dfs -cat books/2074-0.txt ; # verify its contents
-
+  ####################################
+  # Run hadoop job #1
   ####################################
     #hdfs dfs -rm books/out/*
     #hdfs dfs -rmdir books/out
+    hdfs dfs -ls
+    hdfs dfs -ls books
     hadoop jar /usr/hdeco/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.1.2.3.0.0-2557.jar wordcount books/2074-0.txt books/out
     hdfs dfs -ls books/out
     hdfs dfs -cat books/out/part-r-00000 |sort -k2 -n | tail
+    hadoop jar /usr/hdp/2.3.0.0-2557/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.1.2.3.0.0-2557.jar grep books/2074-0.txt books/out 'my[a-z.]+'
+    hdfs dfs -cat books/out/*
+
+  ####################################
+  # Run hadoop job #2
   ####################################
     hadoop jar /usr/hdeco/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.1.2.3.0.0-2557.jar pi 2 8
 
   ####################################
+  # Check for errors
+  ####################################
     mydate="$(date +%Y-%m-%d)"
+    mydatewhr="$(date +%Y-%m-%d\ %H)"
     grep -r ERR /home/hduser/hadoop/log/* |grep $mydate
-  ####################################
-    yum -y groups install "GNOME Desktop"
-    startx ; # start up gui now
+    find -L /home/hduser/hadoop/log -mtime -1 | xargs /bin/ls -atd1Lp
+    find -L /home/hduser/hadoop/log -mmin -5 | xargs /bin/ls -atd1Lp
+    find -L /home/hduser/hadoop/log -mmin -5 | xargs /bin/grep -s ERR -c
+    find -L /home/hduser/hadoop/log -mmin -5 | xargs /bin/grep -s ERR -l
+    find -L /home/hduser/hadoop/log -mmin -5 | xargs /bin/grep -s ERR -l | xargs /bin/grep -s ERR | grep "$mydatewhr"
 
-    systemctl get-default
-    #systemctl set-default graphical.target ; # change default startup run level
-    systemctl isolate graphical.target ; # switch to run level 5 now
+    lynx http://hdcentos:50070
+    lynx http://hdcentos:8088
 
-  ####################################
-  # odd thing is after I installed desktop, all /var/db/hdfs permissions now say hduser:hduser
 
-  
-  ################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
   ################################################################################################
   # Older instructions...
   ################################################################################################
