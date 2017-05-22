@@ -13,11 +13,18 @@
     <name>bash project</name>
     <version>1.0</version>
 
-<!--
--->
     <profiles>
       <profile>
         <id>linux</id>
+
+          <dependencies>
+            <dependency>
+              <groupId>junit</groupId>
+              <artifactId>junit</artifactId>
+              <version>4.8.1</version>
+              <scope>test</scope>
+            </dependency>
+          </dependencies>
 
           <build>
             <plugins>
@@ -50,17 +57,28 @@ https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/
                   <version>1.4.0</version>
                   <executions>
                     <execution>
-                      <id>bash-tests</id>
+                      <id>hadoop-setup-tests</id>
                       <phase>test</phase>
                       <goals>
                         <goal>exec</goal>
                       </goals>
+                        <configuration>
+                            <workingDirectory>${project.basedir}/src/test/bin</workingDirectory>
+                            <executable>${project.basedir}/src/test/bin/hadoop-setup-tests.sh</executable>
+                        </configuration>
+                    </execution>
+                    <execution>
+                      <id>hadoop-startup-tests</id>
+                      <phase>test</phase>
+                      <goals>
+                        <goal>exec</goal>
+                      </goals>
+                        <configuration>
+                            <workingDirectory>${project.basedir}/src/test/bin</workingDirectory>
+                            <executable>${project.basedir}/src/test/bin/hadoop-startup-tests.sh</executable>
+                        </configuration>
                     </execution>
                   </executions>
-                  <configuration>
-                    <workingDirectory>${project.basedir}/src/test/bin</workingDirectory>
-                    <executable>${project.basedir}/src/test/bin/hadoop-setup-tests.sh</executable>
-                  </configuration>
               </plugin>
 
               <plugin>

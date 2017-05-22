@@ -3,8 +3,12 @@
 setUp()
 {
     echo "setting up"
-    HADOOP_DIR=/home/hduser
-    echo "HADOOP dir is $HADOOP_DIR "
+   #HADOOP_DIR=/home/hduser
+   #echo "HADOOP dir is $HADOOP_DIR "
+
+   #cd $HADOOP_DIR && \
+   #source .bashrc && \
+   #cd - &> /dev/null
 }
 
 tearDown()
@@ -14,15 +18,9 @@ tearDown()
 
 testHadoopConfDir()
 {
-    cd $HADOOP_DIR && \
-    source .bashrc && \
-    cd - &> /dev/null
-
+    assertNotNull "HADOOP_CONF_DIR is not set" $HADOOP_CONF_DIR
     assertEquals "HADOOP_CONF_DIR is not set properly" "/home/hduser/hadoop/conf" "${HADOOP_CONF_DIR}"
-
-    if [ -w $HADOOP_CONF_DIR ] ; then writable="true" ; else writable="false" ; fi
-
-    assertEquals "HADOOP_CONF_DIR is not writable" "true" "$writable"
+    assertTrue "HADOOP_CONF_DIR is not writable" "[ -w $HADOOP_CONF_DIR ]"
 }
 
 . ../lib/shunit2-2.1.6/src/shunit2

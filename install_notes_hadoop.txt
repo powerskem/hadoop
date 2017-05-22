@@ -30,6 +30,8 @@
   #################
   sudo rsync -rltuvzP ./src/ ~hduser/src/
   sudo chown -R hduser:hadoop ~hduser/src/
+  sudo rsync -rltuvzP ./pom.xml ~hduser/pom.xml
+  sudo chown -R hduser:hadoop ~hduser/pom.xml
 
   #################
   # Install Hadoop
@@ -213,7 +215,7 @@
     cd /home/hduser
     mkdir hadoop
     cd hadoop
-    ln -s /etc/hadoop/conf conf
+    ln -s /etc/hadoop/conf conf ; # testHadoopConfDir
   # verify we can write to this dir
     touch /home/hduser/hadoop/conf/test
     ls /home/hduser/hadoop/conf/ |grep test
@@ -542,7 +544,7 @@
     mr-jobhistory-daemon.sh start historyserver
 
   # List java processes
-    jps
+    jps #testProcessesStart
 
   # Check status
     hdfs dfsadmin -report
