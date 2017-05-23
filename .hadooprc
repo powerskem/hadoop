@@ -1,0 +1,24 @@
+# .hadooprc
+
+export HADOOP_HOME=/usr/hdp/current/hadoop-client
+
+# set config dir
+#export YARN_CONF_DIR="/etc/hadoop/conf"
+export YARN_CONF_DIR="/home/hduser/hadoop/conf"
+export HADOOP_CONF_DIR="/home/hduser/hadoop/conf"
+
+# set opt install dir
+export OPT_DIR="/usr/hdeco"
+
+# set hadoop home dir
+export HADOOP_COMMON_HOME="$OPT_DIR/hadoop"
+export HADOOP_HDFS_HOME="$OPT_DIR/hadoop-hdfs"; # HDFS
+export HADOOP_YARN_HOME="$OPT_DIR/hadoop-yarn"; # YARN
+export HADOOP_MAPRED_HOME="$OPT_DIR/hadoop-mapreduce"; # MAPR
+
+# set hadoop paths
+export PATH="$PATH:$HADOOP_COMMON_HOME/sbin"
+export PATH="$PATH:$HADOOP_HDFS_HOME/sbin"; # HDFS
+export PATH="$PATH:$HADOOP_YARN_HOME/sbin"; # YARN
+export PATH="$PATH:$HADOOP_MAPRED_HOME/sbin"; # MAPR
+
