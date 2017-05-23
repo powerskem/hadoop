@@ -1,2 +1,23 @@
-.DS_Store
+# git user files
+.gitconfig
+
+# hduser files
+.bash_history
+.bash_logout
+.bash_profile
+.lesshst
+.vimrc
+
+# hduser folders
+.m2/
+.ssh/
+
+# Hadoop folders
+data/
+hadoop/
+input/
+output/
+
+# Maven folders
 src/test/lib/
+target/
