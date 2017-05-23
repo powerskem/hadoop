@@ -7,6 +7,7 @@ public class JavaTests {
     @Test
     public void checkEnvVars() {
         // Check the currently set env vars against the preferred ones in pom.xml
+        // These should be set in .hadooprc and sourced in ~hduser/.bashrc
         assertEquals("HADOOP_HOME not set",
             System.getenv("pref_HADOOP_HOME"),
             System.getenv("HADOOP_HOME"));
