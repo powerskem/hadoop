@@ -13,72 +13,97 @@
     <name>bash project</name>
     <version>1.0</version>
 
+    <dependencies>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.8.1</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+
+          <build>
+            <plugins>
+              <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.20</version>
+                <configuration>
+                  <includes>
+                    <include>**/*Test*.java</include>
+                  </includes>
+                  <environmentVariables>
+                    <TESTING_HOME>hello</TESTING_HOME>
+                  </environmentVariables>
+                </configuration>
+              </plugin>
+            </plugins>
+          </build>
+
     <profiles>
       <profile>
         <id>linux</id>
-
-          <dependencies>
-            <dependency>
-              <groupId>junit</groupId>
-              <artifactId>junit</artifactId>
-              <version>4.8.1</version>
-              <scope>test</scope>
-            </dependency>
-          </dependencies>
 
           <build>
             <plugins>
 
               <plugin>
-                  <groupId>com.googlecode.maven-download-plugin</groupId>
-                  <artifactId>download-maven-plugin</artifactId>
-                  <version>1.2.1</version>
-                  <executions>
-                    <execution>
-                      <id>install-shunit</id>
-                      <phase>test</phase>
-                      <goals>
-                        <goal>wget</goal>
-                      </goals>
-                      <configuration>
-                        <url>
-https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/shunit2/shunit2-2.1.6.tgz
-                        </url>
-                        <unpack>true</unpack>
-                        <outputDirectory>${project.basedir}/src/test/lib</outputDirectory>
-                      </configuration>
-                    </execution>
-                  </executions>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <executions>
+                  <execution>
+                    <id>install-shunit</id>
+                    <phase>test</phase>
+                    <goals>
+                      <goal>wget</goal>
+                    </goals>
+                    <configuration>
+                      <url>https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/shunit2/shunit2-2.1.6.tgz</url>
+                      <unpack>true</unpack>
+                      <outputDirectory>${project.basedir}/src/test/lib</outputDirectory>
+                    </configuration>
+                  </execution>
+                </executions>
               </plugin>
 
               <plugin>
-                  <groupId>org.codehaus.mojo</groupId>
-                  <artifactId>exec-maven-plugin</artifactId>
-                  <version>1.4.0</version>
-                  <executions>
-                    <execution>
-                      <id>hadoop-setup-tests</id>
-                      <phase>test</phase>
-                      <goals>
-                        <goal>exec</goal>
-                      </goals>
-                        <configuration>
-                            <workingDirectory>${project.basedir}/src/test/bin</workingDirectory>
-                            <executable>${project.basedir}/src/test/bin/hadoop-setup-tests.sh</executable>
-                        </configuration>
-                    </execution>
-                    <execution>
-                      <id>hadoop-startup-tests</id>
-                      <phase>test</phase>
-                      <goals>
-                        <goal>exec</goal>
-                      </goals>
-                        <configuration>
-                            <workingDirectory>${project.basedir}/src/test/bin</workingDirectory>
-                            <executable>${project.basedir}/src/test/bin/hadoop-startup-tests.sh</executable>
-                        </configuration>
-                    </execution>
-                  </executions>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.4.0</version>
+                <executions>
+
+                  <execution>
+                    <id>hadoop-setup-tests</id>
+                    <phase>test</phase>
+                    <goals>
+                      <goal>exec</goal>
+                    </goals>
+                    <configuration>
+                      <workingDirectory>${project.basedir}/src/test/bin</workingDirectory>
+                      <executable>
+                          ${project.basedir}/src/test/bin/hadoop-setup-tests.sh
+                      </executable>
+                    </configuration>
+                  </execution>
+
+                  <!--
+                  <execution>
+                    <id>hadoop-startup-tests</id>
+                    <phase>test</phase>
+                    <goals>
+                      <goal>exec</goal>
+                    </goals>
+                    <configuration>
+                        <workingDirectory>${project.basedir}/src/test/bin</workingDirectory>
+                        <executable>
+                            ${project.basedir}/src/test/bin/hadoop-startup-tests.sh
+                        </executable>
+                    </configuration>
+                  </execution>
+                  -->
+
+                </executions>
               </plugin>
 
               <plugin>
