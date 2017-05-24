@@ -153,6 +153,20 @@
                 <executions>
 
                   <execution>
+                    <id>java-version-tests</id>
+                    <phase>test</phase>
+                    <goals>
+                      <goal>exec</goal>
+                    </goals>
+                    <configuration>
+                      <workingDirectory>${project.basedir}/src/test/bin</workingDirectory>
+                      <executable>
+                          ${project.basedir}/src/test/bin/java-version-tests.sh
+                      </executable>
+                    </configuration>
+                  </execution>
+
+                  <execution>
                     <id>hadoop-setup-tests</id>
                     <phase>test</phase>
                     <goals>
