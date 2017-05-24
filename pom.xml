@@ -94,30 +94,30 @@
       </dependency>
     </dependencies>
 
-          <build>
-            <plugins>
-              <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.20</version>
-                <configuration>
-                  <includes>
-                    <include>**/*Test*.java</include>
-                  </includes>
-                  <environmentVariables>
-                    <pref_HADOOP_HOME>/usr/hdp/current/hadoop-client</pref_HADOOP_HOME>
-                    <pref_YARN_CONF_DIR>/home/hduser/hadoop/conf</pref_YARN_CONF_DIR>
-                    <pref_HADOOP_CONF_DIR>/home/hduser/hadoop/conf</pref_HADOOP_CONF_DIR>
-                    <pref_OPT_DIR>/usr/hdeco</pref_OPT_DIR>
-                    <pref_HADOOP_COMMON_HOME>${OPT_DIR}/hadoop</pref_HADOOP_COMMON_HOME>
-                    <pref_HADOOP_HDFS_HOME>${OPT_DIR}/hadoop-hdfs</pref_HADOOP_HDFS_HOME>
-                    <pref_HADOOP_YARN_HOME>${OPT_DIR}/hadoop-yarn</pref_HADOOP_YARN_HOME>
-                    <pref_HADOOP_MAPRED_HOME>${OPT_DIR}/hadoop-mapreduce</pref_HADOOP_MAPRED_HOME>
-                  </environmentVariables>
-                </configuration>
-              </plugin>
-            </plugins>
-          </build>
+    <build>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.20</version>
+          <configuration>
+            <includes>
+              <include>**/*Test*.java</include>
+            </includes>
+            <environmentVariables>
+              <pref_HADOOP_HOME>/usr/hdp/current/hadoop-client</pref_HADOOP_HOME>
+              <pref_YARN_CONF_DIR>/home/hduser/hadoop/conf</pref_YARN_CONF_DIR>
+              <pref_HADOOP_CONF_DIR>/home/hduser/hadoop/conf</pref_HADOOP_CONF_DIR>
+              <pref_OPT_DIR>/usr/hdeco</pref_OPT_DIR>
+              <pref_HADOOP_COMMON_HOME>${OPT_DIR}/hadoop</pref_HADOOP_COMMON_HOME>
+              <pref_HADOOP_HDFS_HOME>${OPT_DIR}/hadoop-hdfs</pref_HADOOP_HDFS_HOME>
+              <pref_HADOOP_YARN_HOME>${OPT_DIR}/hadoop-yarn</pref_HADOOP_YARN_HOME>
+              <pref_HADOOP_MAPRED_HOME>${OPT_DIR}/hadoop-mapreduce</pref_HADOOP_MAPRED_HOME>
+            </environmentVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </build>
 
     <profiles>
       <profile>
