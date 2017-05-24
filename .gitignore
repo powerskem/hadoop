@@ -6,12 +6,14 @@
 .bash_logout
 .bash_profile
 .lesshst
+.viminfo
 .vimrc
 .*.swp
 
 # hduser folders
 .m2/
 .ssh/
+.vim/
 
 # Hadoop folders
 data/
