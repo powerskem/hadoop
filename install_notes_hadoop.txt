@@ -20,18 +20,12 @@
     su -
     yum install update-java-alternatives
     yum install git
+    yum install vim
+    update-alternatives --config vi
   #TODO
     yum install wget
     yum install tree
     yum install expect
-
-  #################
-  # for testing...
-  #################
-  sudo rsync -rltuvzP ./src/ ~hduser/src/
-  sudo chown -R hduser:hadoop ~hduser/src/
-  sudo rsync -rltuvzP ./pom.xml ~hduser/pom.xml
-  sudo chown -R hduser:hadoop ~hduser/pom.xml
 
   #################
   # Install Hadoop
