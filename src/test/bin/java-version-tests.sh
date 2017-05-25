@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 
-setUp()
-{
-    echo "setting up"
     pref_ver="1.7"
-}
-
-tearDown()
-{
-    echo "tearing down"
-}
 
 testJavaHomeEnvVar()
 {
