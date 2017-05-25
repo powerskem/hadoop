@@ -22,3 +22,10 @@ export PATH="$PATH:$HADOOP_HDFS_HOME/sbin"; # HDFS
 export PATH="$PATH:$HADOOP_YARN_HOME/sbin"; # YARN
 export PATH="$PATH:$HADOOP_MAPRED_HOME/sbin"; # MAPR
 
+# add /var/run/hadoop
+if ! [ -d /var/run/hadoop ] ; then
+    echo -e "\n /var/run/hadoop does not exist"
+    echo "run the following:"
+    echo -e "\n      sudo mkdir -m0755 /var/run/hadoop"
+    echo -e "      sudo chown hduser:hadoop /var/run/hadoop \n"
+fi

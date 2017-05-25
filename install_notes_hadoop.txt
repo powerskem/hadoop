@@ -521,6 +521,7 @@
     su hduser
     cd /home/hduser
     source .bashrc
+  #TODO Add this next item to /etc/systemd/ or /etc/init.d/ or /etc/init/
   # Add /var/run/hadoop dir and chown it
     sudo mkdir -p  -m0755 /var/run/hadoop
     sudo chown -R hduser:hadoop /var/run/hadoop
