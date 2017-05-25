@@ -130,6 +130,10 @@
                 <groupId>com.googlecode.maven-download-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
                 <version>1.2.1</version>
+                <!--
+                Credit for shunit2 walkthrough:
+                https://leelevett.wordpress.com/2015/07/21/bash-script-project-with-tests-and-maven/
+                -->
                 <executions>
                   <execution>
                     <id>install-shunit</id>
