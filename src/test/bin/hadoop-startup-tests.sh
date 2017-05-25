@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-setUp()
+testStartAll()
 {
     echo "starting processes"
 
@@ -12,7 +12,25 @@ setUp()
     mr-jobhistory-daemon.sh start historyserver
 }
 
-tearDown()
+testProcessesRunning()
+{
+    for processtotest in \
+        $(echo -e "NameNode \nDataNode \nSecondaryNameNode \nResourceManager \nNodeManager \nJobHistoryServer")
+    do
+        assertEquals "$processtotest is not running" \
+            "${processtotest}" \
+            "$(jps | cut -d' ' -f 2 | grep -o --max-count=1 $processtotest )"
+    done
+}
+
+testExample1()
+{
+    #hdfs dfs -rm -r books/out
+    hadoop jar /usr/hdeco/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+        grep books/Civilisation.txt books/out2 'my[a-z.]+'
+}
+
+testStopAll()
 {
     echo "stopping processes"
 
@@ -22,15 +40,13 @@ tearDown()
     hadoop-daemon.sh stop secondarynamenode
     hadoop-daemon.sh stop datanode
     hadoop-daemon.sh stop namenode
-}
 
-testProcessesStart()
-{
     for processtotest in \
         $(echo -e "NameNode \nDataNode \nSecondaryNameNode \nResourceManager \nNodeManager \nJobHistoryServer")
     do
-        i=$(jps | cut -d' ' -f 2 | grep -o --max-count=1 $processtotest )
-        assertEquals "$processtotest is not running" "${processtotest}" "${i}"
+        assertEquals "$processtotest is running" \
+            "0" \
+            "$(jps | cut -d' ' -f 2 | grep -c $processtotest )"
     done
 }
 

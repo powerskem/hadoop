@@ -184,7 +184,6 @@
                     </configuration>
                   </execution>
 
-                  <!--
                   <execution>
                     <id>hadoop-startup-tests</id>
                     <phase>test</phase>
@@ -198,7 +197,6 @@
                         </executable>
                     </configuration>
                   </execution>
-                  -->
 
                 </executions>
               </plugin>
