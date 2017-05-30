@@ -8,10 +8,10 @@
 ################################################################
 
 
-  ################################################################################################
+  ############################################################################################
   # Create the first VM with CentOS-7 minimal install.
   # This VM will be cloned to create other nodes after Hadoop is installed.
-  ################################################################################################
+  ############################################################################################
 
   #################
   # Install needed utilities
@@ -248,12 +248,12 @@
     ln -s /var/run/hadoop/mapreduce run/mapreduce; # MAPR
     ls -l /home/hduser/hadoop/run/*
 
-########################################################################################
+  ########################################################################################
   # this won't work if they are not running yet
     sudo chown -R hduser:hadoop /var/run/hadoop/hdfs; # HDFS
     sudo chown -R hduser:hadoop /var/run/hadoop/yarn; # YARN
     sudo chown -R hduser:hadoop /var/run/hadoop/mapreduce; # MAPR
-########################################################################################
+  ########################################################################################
 
   # make .hadooprc file
     su hduser
@@ -486,21 +486,21 @@
   # make a dir for data (if not already done)
   # mkdir /home/hduser/data
     hdfs dfs -ls
-    hdfs dfs -mkdir -p /user/hduser/books
+    hdfs dfs -mkdir -p /user/hduser/
     hdfs dfs -ls
-    hdfs dfs -put 2074-0.txt books
-    hdfs dfs -ls books ; # verify it's there
-    hdfs dfs -cat books/2074-0.txt ; # verify its contents
+    hdfs dfs -put data/books/Civil.txt /user/hduser/
+    hdfs dfs -ls ; # verify it's there
+    hdfs dfs -tail Civil.txt ; # verify its contents
 
-  ################################################################################################
+  ############################################################################################
   # Test the installation
-  ################################################################################################
+  ############################################################################################
 
   ####################################
   # Install plain text browser in order to check web page
   ####################################
   # option #1, install entire desktop? ugh.
-  # (odd thing is... after I installed desktop, all /var/db/hdfs permissions now say hduser:hduser)
+  # odd thing is... after installing desktop, all /var/db/hdfs permissns now say hduser:hduser
     #yum -y groups install "GNOME Desktop"
     #startx ; # start up gui now
     #systemctl get-default
@@ -521,14 +521,15 @@
     su hduser
     cd /home/hduser
     source .bashrc
-  #TODO Add this next item to /etc/systemd/ or /etc/init.d/ or /etc/init/
+  #TODO Add this next item to /etc/systemd/system/ or /etc/init.d/ or /etc/init/
   # Add /var/run/hadoop dir and chown it
     sudo mkdir -p  -m0755 /var/run/hadoop
     sudo chown -R hduser:hadoop /var/run/hadoop
     ls -l /var/run/hadoop
  
   ####################################
-  # RUN HADOOP IN STAND-ALONE MODE?
+  # RUN HADOOP IN Pseudo-Distributed Mode
+    (on a single-node where each Hadoop daemon runs in a separate Java process)
   ####################################
   # start the daemon
     hadoop-daemon.sh start namenode
@@ -550,20 +551,22 @@
   ####################################
   # Run hadoop job #1
   ####################################
-    #hdfs dfs -rm books/out/*
-    #hdfs dfs -rmdir books/out
+    hdfs dfs -rm out/*
+    hdfs dfs -rmdir out
     hdfs dfs -ls
-    hdfs dfs -ls books
-    hadoop jar /usr/hdeco/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.1.2.3.0.0-2557.jar wordcount books/2074-0.txt books/out
-    hdfs dfs -ls books/out
-    hdfs dfs -cat books/out/part-r-00000 |sort -k2 -n | tail
-    hadoop jar /usr/hdp/2.3.0.0-2557/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.1.2.3.0.0-2557.jar grep books/2074-0.txt books/out 'my[a-z.]+'
-    hdfs dfs -cat books/out/*
+    hadoop jar $HADOOP_MAPRED_HOME/hadoop-mapreduce-examples.jar wordcount Civil.txt out
+    hdfs dfs -ls out
+    hdfs dfs -cat out/part-r-00000 |sort -k2 -n | tail
+
+    hdfs dfs -rm out/*
+    hdfs dfs -rmdir out
+    hadoop jar $HADOOP_MAPRED_HOME/hadoop-mapreduce-examples.jar grep Civil.txt out 'my[a-z.]+'
+    hdfs dfs -cat out/part-r-00000 | head
 
   ####################################
   # Run hadoop job #2
   ####################################
-    hadoop jar /usr/hdeco/hadoop-mapreduce/hadoop-mapreduce-examples-2.7.1.2.3.0.0-2557.jar pi 2 8
+    hadoop jar $HADOOP_MAPRED_HOME/hadoop-mapreduce-examples.jar pi 2 2
 
   ####################################
   # Check for errors
@@ -593,9 +596,9 @@
 
 
 
-  ################################################################################################
+  ############################################################################################
   # Older instructions...
-  ################################################################################################
+  ############################################################################################
 
   #################
   # On each node:
