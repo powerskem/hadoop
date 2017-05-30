@@ -17,7 +17,6 @@
 
 # Hadoop folders
 data/
-hadoop/
 input/
 output/
 

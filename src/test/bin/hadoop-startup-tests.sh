@@ -44,7 +44,7 @@ testStopAll()
     for processtotest in \
         $(echo -e "NameNode \nDataNode \nSecondaryNameNode \nResourceManager \nNodeManager \nJobHistoryServer")
     do
-        assertEquals "$processtotest is running" \
+        assertEquals "$processtotest is still running" \
             "0" \
             "$(jps | cut -d' ' -f 2 | grep -c $processtotest )"
     done
