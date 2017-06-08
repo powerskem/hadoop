@@ -2,6 +2,8 @@
 
 export HADOOP_HOME=/usr/hdp/current/hadoop-client
 
+#TODO copy files from ./etc/. to /etc/.
+
 # set config dir
 #export YARN_CONF_DIR="/etc/hadoop/conf"
 export YARN_CONF_DIR="/home/hduser/hadoop/conf"
