@@ -1,0 +1,9 @@
+ 
+usr/lib/tmpfiles.d/hadoop.conf
+etc/hadoop/conf/core-site.xml
+etc/hadoop/conf/hdfs-site.xml
+etc/hadoop/conf/mapred-site.xml
+etc/hadoop/conf/slaves
+etc/hadoop/conf/yarn-site.xml
+etc/sysconfig/network-scripts/ifcfg-Wired_connection_1
+etc/sysctl.conf
