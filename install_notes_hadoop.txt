@@ -13,6 +13,10 @@
   # This VM will be cloned to create other nodes after Hadoop is installed.
   ############################################################################################
 
+  # disable IPv6 -- add to the file /etc/sysctl.conf
+    net.ipv6.conf.all.disable_ipv6 = 1
+    net.ipv6.conf.default.disable_ipv6 = 1
+
   #################
   # Install needed utilities (as root)
   #################
@@ -67,10 +71,8 @@
         export JAVA_HOME="/usr/lib/java"
         export PATH="$PATH:$JAVA_HOME/bin"
 
-        #TODO Add this next item to /etc/systemd/system/ or /etc/init.d/ or /etc/init/
-        # add location for PIDs
-        mkdir -m0755 /var/run/hadoop
-        chown hduser:hadoop /var/run/hadoop 
+        # add location for PIDs to /usr/lib/tmpfiles.d/hadoop.conf
+            d /var/run/hadoop 0755 hduser hadoop
 
         # source the Hadoop runtime
         if [ -f ./.hadooprc ]; then
