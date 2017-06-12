@@ -14,7 +14,7 @@
   ############################################################################################
 
   #################
-  # Install needed utilities
+  # Install needed utilities (as root)
   #################
 
     su -
@@ -22,25 +22,15 @@
     yum install git
     yum install vim
     update-alternatives --config vi
-  #TODO
+
+  # Install plain text browser in order to check web page
+    yum -y install lynx
+
+  #OPTIONAL
     yum install wget
     yum install tree
     yum install expect
 
-  #################
-  # Install Hadoop
-  #################
-    su -
-#T  ls /etc/yum.repos.d/
-  # Use HortonWorks HDP Repo
-    sudo curl -O public-repo-1.hortonworks.com/HDP/centos7/2.x/updates/2.3.0.0/hdp.repo
-    sudo mv hdp.repo /etc/yum.repos.d/.
-    ll /etc/yum.repos.d/hdp.repo 
-    sudo yum -y install epel-release
-    sudo yum -y repolist enable
-  # search for HDP stack repos
-    yum search hadoop
-    yum search hive
   #TODO install sw builders
   # yum install ant make
     yum -y install maven
@@ -58,9 +48,9 @@
   # Check current installed java version
     java -version
   # Install desired JDK version
-    sudo yum -y install java-1.7.0-openjdk-devel.x86_64 
+    yum -y install java-1.7.0-openjdk-devel.x86_64 
   # verify alternatives settings link to correct version
-    sudo alternatives --display java
+    alternatives --display java
   # make sure the bin directory contains the binaries
     ls /usr/lib/jvm/java-1.7.0-openjdk-1.7.0.121-0.b13.el7_3.x86_64/
   # verify /usr/lib/java/ is an empty directory
@@ -69,51 +59,46 @@
   # e.g.,   /usr/lib/jvm/java-1.7.0-openjdk-1.7.0.131-2.6.9.0.el7_3.x86_64
     ll /etc/alternatives/java_sdk
   # replace /usr/lib/java with a soft link
-    sudo rmdir /usr/lib/java
-    sudo ln -s /etc/alternatives/java_sdk/ /usr/lib/java
+    rmdir /usr/lib/java
+    ln -s /etc/alternatives/java_sdk/ /usr/lib/java
   # set home path for user
-    sudo vi /etc/bashrc ; # add these lines to end of file:
-                            # set java home dir 
-                            export JAVA_HOME="/usr/lib/java"
-                            export PATH="$PATH:$JAVA_HOME/bin"
+    vi /etc/bashrc ; # add these lines to end of file:
+        # set java home dir 
+        export JAVA_HOME="/usr/lib/java"
+        export PATH="$PATH:$JAVA_HOME/bin"
 
-                            # source the Hadoop runtime
-                            if [ -f ./.hadooprc ]; then
-                                . ./.hadooprc
-                            fi
-    source /etc/bashrc
+        #TODO Add this next item to /etc/systemd/system/ or /etc/init.d/ or /etc/init/
+        # add location for PIDs
+        mkdir -m0755 /var/run/hadoop
+        chown hduser:hadoop /var/run/hadoop 
 
-  # change hostname
+        # source the Hadoop runtime
+        if [ -f ./.hadooprc ]; then
+            . ./.hadooprc
+        fi
+
+  # change hostname (include in instructions for add'l nodes)
     hostnamectl set-hostname hdcentos
     hostname
   # change hosts file
     vi /etc/hosts ;     # add line:
-                            127.0.0.1    hdcentos
+        $namenode_IP    hdcentos
+        $node2_IP       node2
+        $node3_IP       node3
+        $node4_IP       node4
+        $node5_IP       node5
   # reboot
     reboot
-    hostname
+    hostname ; # verify new hostname
 
   # create Hadoop main user
     adduser hduser
     passwd hduser
 
-  # add user to sudoers (optional)
-    visudo # add line: hduser  ALL=(ALL)    ALL
-    su hduser ; sudo ls ; exit
-
-  # for the hduser, create ssh key
-    su hduser
-    ssh-keygen -t rsa -P ''
-
-  # set up passwd-less login for hduser to hostname hdcentos
-    cd ~
-    ls .ssh ;       # verify file authorized_keys doesn't already exist
-    cp .ssh/id_rsa.pub .ssh/authorized_keys ; # make authorized key list
-  # add to list of known hosts
-    ssh localhost # answer "yes" and then exit
-    ssh localhost # make sure it connects without asking for a passwd
-    ssh hdcentos  # answer "yes" and then exit
-    ssh hdcentos  # make sure it connects without asking for a passwd
+  #NOT RECOMMENDED
+  # add user to sudoers
+  # visudo # add line: hduser  ALL=(ALL)    ALL
+  # su hduser ; sudo ls ; exit ; # test it
 
   ####################################
   # yum installs code into /usr/bin and then creates other directories
@@ -128,14 +113,30 @@
   #   Working dir:    /home/hduser/<component>
   ####################################
 
+  #################
+  # Install Hadoop (as root)
+  #################
+
+    su -
+    ls /etc/yum.repos.d/
+  # Use HortonWorks HDP Repo
+    curl -O public-repo-1.hortonworks.com/HDP/centos7/2.x/updates/2.3.0.0/hdp.repo
+    mv hdp.repo /etc/yum.repos.d/.
+    ll /etc/yum.repos.d/hdp.repo 
+    yum -y install epel-release
+    yum -y repolist enable
+  # search for HDP stack repos
+    yum search hadoop
+    yum search hive
+
   # Install hadoop as root
-    sudo yum -y install hadoop hadoop-client
-    sudo yum -y install hadoop-hdfs hadoop-libhdfs; # HDFS
-    sudo yum -y install hadoop-yarn; # YARN
-    sudo yum -y install hadoop-mapreduce; # MAPR
+    yum -y install hadoop hadoop-client
+    yum -y install hadoop-hdfs hadoop-libhdfs; # HDFS
+    yum -y install hadoop-yarn; # YARN
+    yum -y install hadoop-mapreduce; # MAPR
     
   #TODO "install the compression libraries, snappy and LZL" <-- no clue what these are for
-  # sudo yum -y install snappy snappy-devel
+  # yum -y install snappy snappy-devel
 
   ####################################
   # Operational dir location (alternative to /usr/local/opt or /opt):
@@ -152,10 +153,10 @@
 
   # Create "swing links" for operational code
     cd /usr/hdeco
-    sudo ln -s /usr/hdp/current/hadoop-client hadoop
-    sudo ln -s /usr/hdp/current/hadoop-hdfs-client hadoop-hdfs ; # HDFS
-    sudo ln -s /usr/hdp/current/hadoop-yarn-client hadoop-yarn ; # YARN
-    sudo ln -s /usr/hdp/current/hadoop-mapreduce-client hadoop-mapreduce ; # MAPR
+    ln -s /usr/hdp/current/hadoop-client hadoop
+    ln -s /usr/hdp/current/hadoop-hdfs-client hadoop-hdfs ; # HDFS
+    ln -s /usr/hdp/current/hadoop-yarn-client hadoop-yarn ; # YARN
+    ln -s /usr/hdp/current/hadoop-mapreduce-client hadoop-mapreduce ; # MAPR
 
     ls -l   # hadoop -> /usr/hdp/current/hadoop-client
             # hadoop-hdfs -> /usr/hdp/current/hadoop-hdfs-client ; # HDFS
@@ -181,11 +182,11 @@
   # to point back to /usr/hdeco/hadoop/libexec dir
   # (Newer builds may not require this)
     cd /usr/hdeco/hadoop-hdfs
-    sudo ln -s /usr/hdeco/hadoop/libexec libexec; # HDFS
+    ln -s /usr/hdeco/hadoop/libexec libexec; # HDFS
     cd /usr/hdeco/hadoop-yarn
-    sudo ln -s /usr/hdeco/hadoop/libexec libexec; # YARN
+    ln -s /usr/hdeco/hadoop/libexec libexec; # YARN
     cd /usr/hdeco/hadoop-mapreduce
-    sudo ln -s /usr/hdeco/hadoop/libexec libexec; # MAPR
+    ln -s /usr/hdeco/hadoop/libexec libexec; # MAPR
 
   # chown the conf dir and its files (from root:root) to allow r/w by hduser
     ls -l /etc/hadoop ;     # contains conf, a directory (not a link)
@@ -194,15 +195,23 @@
     ls -ld /etc/hadoop/conf |grep -e "hduser *hadoop" ; # dir is owned by hduser hadoop
     ls -l /etc/hadoop/conf |grep -e "hduser *hadoop" ;  # all files are owned by hduser hadoop
 
-  # make input dir
-    su hduser
-    cd /home/hduser
-    mkdir input
-
   # make db dir
-    sudo mkdir /var/db/hdfs; # HDFS
-    sudo chown -R hduser:hadoop /var/db/hdfs; # HDFS
+    mkdir /var/db/hdfs; # HDFS
+    chown -R hduser:hadoop /var/db/hdfs; # HDFS
     ls -l /var/db/hdfs
+
+  # Make sure log files are writable by hduser - They are set in the hadoop-env.sh file
+    chown -R hduser:hadoop /var/log/hadoop/hdfs; # HDFS
+    chown -R hduser:hadoop /var/log/hadoop/yarn; # YARN
+    chown -R hduser:hadoop /var/log/hadoop/mapreduce; # MAPR
+
+  #TODO Make this a permanent change
+    mkdir -p  -m0755 /var/run/hadoop
+    chown -R hduser:hadoop /var/run/hadoop
+
+  #################
+  # Make working dir /home/hduser/hadoop (as hduser)
+  #################
 
   # make working dir in home dir to make it easier to admin and operate hadoop
     su hduser
@@ -218,7 +227,6 @@
   # rm *.cmd *.bat
 
   # link to db dir in home dir
-    su hduser
     cd /home/hduser/hadoop
     ln -s /var/db/hdfs hdfs; # HDFS
     cd hdfs
@@ -226,7 +234,6 @@
     ls -l /home/hduser/hadoop/hdfs
 
   # link to log dir in home dir
-    su hduser
     cd /home/hduser/hadoop
     mkdir log
     mkdir run
@@ -235,45 +242,47 @@
     ln -s /var/log/hadoop/mapreduce log/mapreduce; # MAPR
     ls -l /home/hduser/hadoop/log/*
 
-  # Make sure log files are writable by hduser - They are set in the hadoop-env.sh file
-    sudo chown -R hduser:hadoop /var/log/hadoop/hdfs; # HDFS
-    sudo chown -R hduser:hadoop /var/log/hadoop/yarn; # YARN
-    sudo chown -R hduser:hadoop /var/log/hadoop/mapreduce; # MAPR
-
   # link to run dir in home dir
-    sudo mkdir -p  -m0755 /var/run/hadoop
-    sudo chown -R hduser:hadoop /var/run/hadoop
     ln -s /var/run/hadoop/hdfs run/hdfs; # HDFS
     ln -s /var/run/hadoop/yarn run/yarn; # YARN
     ln -s /var/run/hadoop/mapreduce run/mapreduce; # MAPR
     ls -l /home/hduser/hadoop/run/*
 
-  ########################################################################################
-  # this won't work if they are not running yet
-    sudo chown -R hduser:hadoop /var/run/hadoop/hdfs; # HDFS
-    sudo chown -R hduser:hadoop /var/run/hadoop/yarn; # YARN
-    sudo chown -R hduser:hadoop /var/run/hadoop/mapreduce; # MAPR
-  ########################################################################################
+  # make input dir
+    cd /home/hduser
+    mkdir input
+
+  # create ssh key
+    ssh-keygen -t rsa -P ''
+
+  # set up passwd-less login for hduser to hostname hdcentos
+    cd ~
+    ls .ssh ;       # verify file authorized_keys doesn't already exist
+    cp .ssh/id_rsa.pub .ssh/authorized_keys ; # make authorized key list
+  # add to list of known hosts
+    ssh localhost # answer "yes" and then exit
+    ssh localhost # make sure it connects without asking for a passwd
+    ssh hdcentos  # answer "yes" and then exit
+    ssh hdcentos  # make sure it connects without asking for a passwd
 
   # make .hadooprc file
-    su hduser
     cd /home/hduser
     vi .hadooprc ; # add these lines:
-                    # .hadooprc
-                    # set opt install dir
-                        export OPT_DIR="/usr/hdeco"
-                    # set hadoop home dirs
-                        export HADOOP_COMMON_HOME="$OPT_DIR/hadoop"
-                        export HADOOP_HDFS_HOME="$OPT_DIR/hadoop-hdfs"; # HDFS
-                        export HADOOP_YARN_HOME="$OPT_DIR/hadoop-yarn"; # YARN
-                        export HADOOP_MAPRED_HOME="$OPT_DIR/hadoop-mapreduce"; # MAPR
-                    #TODO set hadoop config dir
-                        export HADOOP_CONF_DIR=/etc/hadoop/conf
-                    # set hadoop paths
-                        export PATH="$PATH:$HADOOP_COMMON_HOME/sbin"
-                        export PATH="$PATH:$HADOOP_HDFS_HOME/sbin"; # HDFS
-                        export PATH="$PATH:$HADOOP_YARN_HOME/sbin"; # YARN
-                        export PATH="$PATH:$HADOOP_MAPRED_HOME/sbin"; # MAPR
+        # .hadooprc
+        # set opt install dir
+        export OPT_DIR="/usr/hdeco"
+        # set hadoop home dirs
+        export HADOOP_COMMON_HOME="$OPT_DIR/hadoop"
+        export HADOOP_HDFS_HOME="$OPT_DIR/hadoop-hdfs"; # HDFS
+        export HADOOP_YARN_HOME="$OPT_DIR/hadoop-yarn"; # YARN
+        export HADOOP_MAPRED_HOME="$OPT_DIR/hadoop-mapreduce"; # MAPR
+        #TODO set hadoop config dir
+        export HADOOP_CONF_DIR=/etc/hadoop/conf
+        # set hadoop paths
+        export PATH="$PATH:$HADOOP_COMMON_HOME/sbin"
+        export PATH="$PATH:$HADOOP_HDFS_HOME/sbin"; # HDFS
+        export PATH="$PATH:$HADOOP_YARN_HOME/sbin"; # YARN
+        export PATH="$PATH:$HADOOP_MAPRED_HOME/sbin"; # MAPR
 
     source .bashrc
     echo $PATH | grep "/usr/hdeco/hadoop/sbin"
@@ -287,7 +296,6 @@
   ####################################
 
     mydate="$(date +%Y-%m-%d)"
-    su hduser
     cd /home/hduser/hadoop/conf
     cp hadoop-env.sh hadoop-env.sh.orig.$mydate
     vi hadoop-env.sh ;  # find LOG_DIR, add line: 
@@ -320,7 +328,6 @@
   # TEST CONFIG for HDFS
   ####################################
 
-    su hduser
     hdfs namenode -format
     ls ~/hadoop/hdfs/namenode/current
 
@@ -360,7 +367,6 @@
   ####################################
 
     mydate="$(date +%Y-%m-%d)"
-    su hduser
     cd /home/hduser/hadoop/conf
     if [ -f yarn-env.sh ]; then cp yarn-env.sh yarn-env.sh.orig.$mydate ; fi
     cp /usr/hdeco/hadoop/../etc/hadoop/conf.empty/yarn-env.sh .
@@ -432,7 +438,6 @@
   ####################################
 
     mydate="$(date +%Y-%m-%d)"
-    su hduser
     cd /home/hduser/hadoop/conf
     if [ -f mapred-env.sh ]; then cp mapred-env.sh mapred-env.sh.orig.$mydate ; fi
     vi mapred-env.sh ;  # find HADOOP_MAPRED_LOG_DIR, change line: 
@@ -496,35 +501,12 @@
   ############################################################################################
 
   ####################################
-  # Install plain text browser in order to check web page
-  ####################################
-  # option #1, install entire desktop? ugh.
-  # odd thing is... after installing desktop, all /var/db/hdfs permissns now say hduser:hduser
-    #yum -y groups install "GNOME Desktop"
-    #startx ; # start up gui now
-    #systemctl get-default
-    #systemctl set-default graphical.target ; # change default startup run level
-    #systemctl isolate graphical.target ; # switch to run level 5 now
-
-  # option #2, install lynx
-    sudo yum -y install lynx
-
-  # option #3, verify open ports with curl
-    curl -v http://hdcentos:50070
-    curl -v http://hdcentos:8088
-
-  ####################################
   # On fresh startup...
   ####################################
   # Source /home/hduser/.bashrc
     su hduser
     cd /home/hduser
     source .bashrc
-  #TODO Add this next item to /etc/systemd/system/ or /etc/init.d/ or /etc/init/
-  # Add /var/run/hadoop dir and chown it
-    sudo mkdir -p  -m0755 /var/run/hadoop
-    sudo chown -R hduser:hadoop /var/run/hadoop
-    ls -l /var/run/hadoop
  
   ####################################
   # RUN HADOOP IN Pseudo-Distributed Mode
@@ -599,127 +581,30 @@
   # Older instructions...
   ############################################################################################
 
-  #################
-  # On each node:
-  #################
-  # change hostname
-    hostnamectl set-hostname hdcentos
-    hostname
-  # change hosts file
-    vi /etc/hosts ;     # add line as \
-        127.0.0.1    hdcentos
-  # reboot
-    reboot
-    hostname
-
-  # create users
-    adduser hduser
-    passwd hduser
-
-  #################
-
-
-# ------------
-# On the host:
-# ------------
-
-# add neighbors to /etc/hosts: 10.0.3.12 hmaster, 10.0.3.13 hslave1, 10.0.3.14 hslave2, ...
-    for x in 2 3 4 5 6; do ./put_files_on_remote.sh root 192.168.98.10$x ./revise_etc_hosts_file.sh ; done
-    ./nodes_cmd.exp root "./revise_etc_hosts_file.sh"
-
-    # OR...
-    ./nodes_send_and_run_script.exp ./revise_etc_hosts_file.sh
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /etc/hosts |grep 10.0.3"
-
-  ####################################
-  # update packages
-    ./nodes_cmd.exp root "yum update"
-    # type "proceed" to return from interact
-
-  # install wget
-    pkg="wget"
-    ./nodes_cmd.exp root "yum install $pkg";done
-    # type "proceed" to return from interact after install on ea node
-
-    # test
-    ./nodes_cmd.exp <username> "which wget"
-
-  # get hadoop
-    ssh root@hmaster
-    cd /opt
-    wget http://mirror.reverse.net/pub/apache/hadoop/common/current/hadoop-3.0.0-alpha2.tar.gz
-    tar -xzf hadoop-3.0.0-alpha2.tar.gz
-    rm hadoop-3.0.0-alpha2.tar.gz
-    mv hadoop-3.0.0-alpha2 /opt/hadoop
-  ####################################
-
-# propagate to slave nodes
+    # propagate to slave nodes
     cd /opt
     for x in 1 2 3 4; do scp -r hadoop hslave${x}:/opt ; done
-
-    # test PASSED
-    ./nodes_cmd.exp hadoop "which hdfs | grep hadoop"
-
-# chown and chgrp of /opt/hadoop
-    ./nodes_cmd.exp root "chown hadoop /opt/hadoop/ -R"
-    ./nodes_cmd.exp root "chgrp hadoop /opt/hadoop/ -R"
-
-    # test PASSED
-    ./nodes_cmd.exp root "ls -dl /opt/hadoop"
-
-### IF THIS DOESN'T WORK, TRY MOVING xxx-site.xml files to /opt/hadoop/conf/.
-
-# edit the file /opt/hadoop/etc/hadoop/core-site.xml
-    ./nodes_send_and_run_script.exp ./revise_hadoop_core-site_xml.sh
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/core-site.xml | grep -A2 hmaster"
-
-# edit the file /opt/hadoop/etc/hadoop/hdfs-site.xml
-    ./nodes_send_and_run_script.exp ./revise_hadoop_hdfs-site_xml.sh
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/hdfs-site.xml|grep -A2 datanode"
-
-# edit the file /opt/hadoop/etc/hadoop/yarn-site.xml
-    ./nodes_send_and_run_script.exp ./revise_hadoop_yarn-site_xml.sh
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/yarn-site.xml|grep -A2 manager"
 
 # create HDFS DataNode data dir
     ./nodes_cmd.exp root "mkdir /home/hadoop/datanode"
     ./nodes_cmd.exp root "chown hadoop /home/hadoop/datanode -R"
     ./nodes_cmd.exp root "chgrp hadoop /home/hadoop/datanode -R"
 
-    # test PASSED
-    ./nodes_cmd.exp root "ls -dl /home/hadoop/datanode | grep hadoop"
-
 # ON MASTER ONLY create HDFS NameNode data dir
-    ssh root@hmaster "mkdir /home/hadoop/namenode; chown hadoop /home/hadoop/namenode; chgrp hadoop /home/hadoop/namenode"
-
-    # test PASSED
-    ./nodes_cmd.exp root "ls -dl /home/hadoop/namenode | grep hadoop"
+    mkdir /home/hadoop/namenode
+    chown hadoop /home/hadoop/namenode
+    chgrp hadoop /home/hadoop/namenode
 
 # ON MASTER ONLY edit the file /opt/hadoop/etc/hadoop/hdfs-site.xml
     addition="<configuration>\n<property>\n<name>dfs.namenode.data.dir<\/name>\n<value>\/home\/hadoop\/namenode<\/value>\n<\/property>"
     sedscript="s/<configuration>/$addition/"
-    # this doesn't work:
-    # ssh hmaster "sed -e $sedscript -i /opt/hadoop/etc/hadoop/hdfs-site.xml"
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/hdfs-site.xml|grep -A2 namenode"
+    sed -e $sedscript -i /opt/hadoop/etc/hadoop/hdfs-site.xml
 
 # ON MASTER ONLY edit the file /opt/hadoop/etc/hadoop/mapred-site.xml
     addition="<configuration>\n<property>\n<name>mapreduce.framework.name<\/name>\n<value>yarn<\/value>\n<\/property>"
     sedscript="s/<configuration>/$addition/"
-    # this doesn't work:
-    # ssh hmaster "cp /opt/hadoop/etc/hadoop/mapred-site.xml.template /opt/hadoop/etc/hadoop/mapred-site.xml; sed -e $sedscript -i /opt/hadoop/etc/hadoop/mapred-site.xml"
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/mapred-site.xml|grep -A2 mapreduce"
+    cp /opt/hadoop/etc/hadoop/mapred-site.xml.template /opt/hadoop/etc/hadoop/mapred-site.xml
+    sed -e $sedscript -i /opt/hadoop/etc/hadoop/mapred-site.xml
 
 # ON MASTER ONLY create the file /opt/hadoop/etc/hadoop/slaves
 #TODO Make note that start-dfs.sh looks at "workers" instead of "slaves" file
@@ -729,9 +614,6 @@
     hslave3
     hslave4
 
-    # test PASSED
-    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/slaves"
-
 # ON MASTER ONLY create the file $HADOOP_YARN_HOME/conf/masters
     mkdir /opt/hadoop/conf
     touch /opt/hadoop/conf/masters
@@ -740,18 +622,11 @@
     chown hadoop /opt/hadoop/conf -R
     chgrp hadoop /opt/hadoop/conf -R
 
-    # test PASSED
-    ls -l /opt/hadoop/conf |grep hadoop
-    cat /opt/hadoop/conf/masters
-
 # add to the file /opt/hadoop/etc/hadoop/mapred-site.xml
     addition="<configuration>\n<property>\n<name>mapred.job.tracker<\/name>\n<value>hmaster:9000<\/value>\n<\/property>"
     sedscript="s/<configuration>/$addition/"
-    # this doesn't work:
-    # ssh hslave1 "cp /opt/hadoop/etc/hadoop/mapred-site.xml.template /opt/hadoop/etc/hadoop/mapred-site.xml; sed -e $sedscript -i /opt/hadoop/etc/hadoop/mapred-site.xml"
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/mapred-site.xml"
+    cp /opt/hadoop/etc/hadoop/mapred-site.xml.template /opt/hadoop/etc/hadoop/mapred-site.xml
+    sed -e $sedscript -i /opt/hadoop/etc/hadoop/mapred-site.xml
 
 # add to file yarn-site.xml to fix error:
 #   "Could not find or load main class org.apache.hadoop.mapreduce.v2.app.MRAppMaster"
@@ -783,35 +658,21 @@
       firewall-cmd --reload
       for x in 1 2 3 4; do ssh hslave${x} "firewall-cmd --permanent --add-port=50010/tcp ; firewall-cmd --reload" ; done
 
+##################################################################
 # disable IPv6 -- add to the file /etc/sysctl.conf
     net.ipv6.conf.all.disable_ipv6 = 1
     net.ipv6.conf.default.disable_ipv6 = 1
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /etc/sysctl.conf |grep -i ipv6"
+##################################################################
 
 # edit the file etc/hadoop/hadoop-env.sh
     javahm=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.121-0.b13.el7_3.x86_64
     ./nodes_cmd.exp root "echo -e \"export JAVA_HOME=$javahm\" >> /opt/hadoop/etc/hadoop/hadoop-env.sh"
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /opt/hadoop/etc/hadoop/hadoop-env.sh |grep JAVA_HOME"
-
-# edit the file /home/hadoop/.bashrc
-    ./nodes_send_and_run_script.exp ./revise_hadoop_bashrc_file.sh
-
-    # test PASSED
-    ./nodes_cmd.exp root "cat /home/hadoop/.bashrc|grep -A2 HADOOP"
-    ./nodes_cmd.exp hadoop "echo \$HADOOP_PREFIX ; echo \$HADOOP_HOME ; echo \$HADOOP_CONF_DIR"
 
 # add to the file /etc/bashrc
     export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.121-0.b13.el7_3.x86_64
     export JRE_HOME=$JAVA_HOME/jre
     export PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin
     systemctl stop firewalld
-
-    # test PASSED
-    ./nodes_cmd.exp root "echo \$JAVA_HOME"
 
 # ON MASTER ONLY format namenode
     ssh hadoop@hmaster 
@@ -820,9 +681,6 @@
     
 # start hadoop cluster
     ssh hadoop@hmaster "start-dfs.sh"
-
-    # test FAILED
-    ./nodes_cmd.exp root "jps"
 
 ############# troubleshooting ############## 
 # check cluster
