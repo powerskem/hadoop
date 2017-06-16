@@ -2,7 +2,10 @@
 
 for cf in $(cat config_files) ; do
   if [ -f $cf ] ; then
+    echo "###################################"
     echo "Checking $cf ........."
+    cat /$cf
+    echo "........"
     case "$cf" in
         etc/hadoop/conf/hdfs-site.xml)
             if [ $(hostname) == "hdcentos" ] ; then
