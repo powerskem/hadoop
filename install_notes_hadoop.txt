@@ -22,18 +22,9 @@
   #################
 
     su -
-    yum install update-java-alternatives
-    yum install git
-    yum install vim
-    update-alternatives --config vi
 
   # Install plain text browser in order to check web page
     yum -y install lynx
-
-  #OPTIONAL
-    yum install wget
-    yum install tree
-    yum install expect
 
   #TODO install sw builders
   # yum install ant make
@@ -47,10 +38,12 @@
   #TODO install lib for sql and ldap
   # yum install libxml2-devel libxsit-devel
   # yum install libsqlite ldap
+
   # check hadoop/java compatability charts \ 
     # @ https://wiki.apache.org/hadoop/HadoopJavaVersions
   # Check current installed java version
     java -version
+    yum install update-java-alternatives
   # Install desired JDK version
     yum -y install java-1.7.0-openjdk-devel.x86_64 
   # verify alternatives settings link to correct version
@@ -65,6 +58,7 @@
   # replace /usr/lib/java with a soft link
     rmdir /usr/lib/java
     ln -s /etc/alternatives/java_sdk/ /usr/lib/java
+
   # set home path for user
     vi /etc/bashrc ; # add these lines to end of file:
         # set java home dir 
@@ -97,10 +91,6 @@
     adduser hduser
     passwd hduser
 
-  #NOT RECOMMENDED
-  # add user to sudoers
-  # visudo # add line: hduser  ALL=(ALL)    ALL
-  # su hduser ; sudo ls ; exit ; # test it
 
   ####################################
   # yum installs code into /usr/bin and then creates other directories
@@ -206,10 +196,6 @@
     chown -R hduser:hadoop /var/log/hadoop/hdfs; # HDFS
     chown -R hduser:hadoop /var/log/hadoop/yarn; # YARN
     chown -R hduser:hadoop /var/log/hadoop/mapreduce; # MAPR
-
-  #TODO Make this a permanent change
-    mkdir -p  -m0755 /var/run/hadoop
-    chown -R hduser:hadoop /var/run/hadoop
 
   #################
   # Make working dir /home/hduser/hadoop (as hduser)
@@ -571,21 +557,9 @@
 
 
 
-
-
-
-
-
-
-
-
   ############################################################################################
   # Older instructions...
   ############################################################################################
-
-    # propagate to slave nodes
-    cd /opt
-    for x in 1 2 3 4; do scp -r hadoop hslave${x}:/opt ; done
 
 # create HDFS DataNode data dir
     ./nodes_cmd.exp root "mkdir /home/hadoop/datanode"
